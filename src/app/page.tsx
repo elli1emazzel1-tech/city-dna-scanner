@@ -6,7 +6,6 @@ import {
   Droplets,
   Trees,
   Thermometer,
-  Trash2,
   Search,
   LayoutDashboard,
   FileText,
@@ -17,19 +16,11 @@ import {
   Info,
   Globe,
   CheckCircle2,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   MapPin,
   ChevronRight,
   Sparkles,
-  Save,
-  Trash,
-  HelpCircle,
-  X,
-  Building2,
   Recycle,
-  ShieldAlert
+  Check
 } from "lucide-react";
 import {
   LineChart,
@@ -43,6 +34,10 @@ import {
 function Home() {
   const [cityInput, setCityInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [savedReports, setSavedReports] = useState<any[]>([]);
+  const [isSaved, setIsSaved] = useState(false);
+
   const [report, setReport] = useState<any>({
     cityName: "Your City",
     country: "Your Country",
@@ -85,9 +80,6 @@ function Home() {
     ]
   });
 
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [savedReports, setSavedReports] = useState<any[]>([]);
-
   useEffect(() => {
     const localSaved = localStorage.getItem("city_saved_reports");
     if (localSaved) {
@@ -98,6 +90,14 @@ function Home() {
       }
     }
   }, []);
+
+  const handleSaveReport = () => {
+    const updated = [...savedReports, report];
+    setSavedReports(updated);
+    localStorage.setItem("city_saved_reports", JSON.stringify(updated));
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 2000);
+  };
 
   const handleScan = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -112,7 +112,6 @@ function Home() {
       });
       const data = await res.json();
       if (!data.error) {
-        // Map backend output to UI design structure
         setReport({
           cityName: data.cityName || cityInput.toUpperCase(),
           country: data.country || "Monitored Telemetry Region",
@@ -191,7 +190,6 @@ function Home() {
           </nav>
         </div>
 
-        {/* Globe graphic placeholder / Bottom Info */}
         <div className="space-y-4">
           <div className="relative w-full h-36 rounded-full overflow-hidden flex items-center justify-center opacity-80">
             <div className="absolute inset-0 bg-gradient-to-t from-[#080D1A] via-transparent to-transparent z-10" />
@@ -245,7 +243,6 @@ function Home() {
         {/* DASHBOARD TAB */}
         {activeTab === "dashboard" && (
           <>
-            {/* Banner Header Card */}
             <div className="relative rounded-2xl overflow-hidden border border-slate-800/80 bg-[#0C1222] min-h-[200px] flex items-center p-6 lg:p-8">
               <div
                 className="absolute inset-0 bg-cover bg-center opacity-25 filter brightness-75 contrast-125"
@@ -276,7 +273,6 @@ function Home() {
                   </p>
                 </div>
 
-                {/* Overall Score Circle */}
                 <div className="flex items-center gap-6">
                   <div className="relative w-28 h-28 flex items-center justify-center">
                     <svg className="w-full h-full transform -rotate-90">
@@ -306,12 +302,18 @@ function Home() {
                     <p className="text-[11px] text-slate-400 leading-snug">
                       {report.summary}
                     </p>
+                    <button
+                      onClick={handleSaveReport}
+                      className="mt-2 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-emerald-400 rounded-md border border-slate-700 flex items-center gap-1.5 transition"
+                    >
+                      {isSaved ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Bookmark className="w-3.5 h-3.5" />}
+                      {isSaved ? "Saved!" : "Save Report"}
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Health Score Overview Grid */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
                 Health Score Overview
@@ -356,9 +358,7 @@ function Home() {
               </div>
             </div>
 
-            {/* AI Diagnosis, Timeline, Recommendations Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* AI Diagnosis */}
               <div className="p-5 rounded-2xl bg-[#0C1222] border border-slate-800/80 flex flex-col justify-between space-y-4">
                 <div>
                   <h5 className="text-xs font-bold text-white mb-3 flex items-center gap-1.5">
@@ -377,12 +377,11 @@ function Home() {
                     ))}
                   </ul>
                 </div>
-                <button className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-semibold transition self-start pt-2">
+                <button onClick={() => setActiveTab("report")} className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-semibold transition self-start pt-2">
                   View Full Analysis <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
 
-              {/* City Health Timeline */}
               <div className="p-5 rounded-2xl bg-[#0C1222] border border-slate-800/80 flex flex-col justify-between space-y-3">
                 <div>
                   <h5 className="text-xs font-bold text-white mb-3 flex items-center gap-1.5">
@@ -407,7 +406,6 @@ function Home() {
                 </div>
               </div>
 
-              {/* Top Recommendations */}
               <div className="p-5 rounded-2xl bg-[#0C1222] border border-slate-800/80 flex flex-col justify-between space-y-4">
                 <div>
                   <h5 className="text-xs font-bold text-white mb-3 flex items-center gap-1.5">
@@ -426,13 +424,12 @@ function Home() {
                   </div>
                 </div>
 
-                <button className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-semibold transition self-start pt-2">
+                <button onClick={() => setActiveTab("recommendations")} className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-semibold transition self-start pt-2">
                   View All Recommendations <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
             </div>
 
-            {/* Compare Cities Table */}
             <div className="p-5 rounded-2xl bg-[#0C1222] border border-slate-800/80 space-y-3">
               <h5 className="text-xs font-bold text-white flex items-center gap-1.5">
                 <ArrowLeftRight className="w-3.5 h-3.5 text-emerald-400" />
@@ -476,6 +473,191 @@ function Home() {
               </div>
             </div>
           </>
+        )}
+
+        {/* CITY REPORT TAB */}
+        {activeTab === "report" && (
+          <div className="p-6 rounded-2xl bg-[#0C1222] border border-slate-800/80 space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+              <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-emerald-400" />
+                  Full Environmental Diagnostic Report: {report.cityName}
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Region: {report.country} • Updated: {report.reportDate}
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-black text-emerald-400">{report.overallScore}/100</span>
+                <p className="text-xs text-slate-400">{report.overallStatus}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-slate-200">Executive Summary</h4>
+              <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/50 p-4 rounded-xl border border-slate-800/60">
+                {report.diagnosis.mainText}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-slate-200">Key Diagnostic Indicators</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                {report.diagnosis.bullets.map((b: string, idx: number) => (
+                  <div key={idx} className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/60 flex items-start gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 mt-1" />
+                    <span className="text-slate-300">{b}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* COMPARE CITIES TAB */}
+        {activeTab === "compare" && (
+          <div className="p-6 rounded-2xl bg-[#0C1222] border border-slate-800/80 space-y-5">
+            <div>
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <ArrowLeftRight className="w-5 h-5 text-emerald-400" />
+                Comparative City Benchmark
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Comparing environmental scores across key peer municipalities.
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800/80 text-slate-400 text-[11px] font-medium">
+                    <th className="pb-3 font-semibold">City Name</th>
+                    <th className="pb-3 font-semibold">Overall Index</th>
+                    <th className="pb-3 font-semibold">Air Index</th>
+                    <th className="pb-3 font-semibold">Water Quality</th>
+                    <th className="pb-3 font-semibold">Green Space</th>
+                    <th className="pb-3 font-semibold">Climate Index</th>
+                    <th className="pb-3 font-semibold">Waste Mgmt</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/40 text-[12px]">
+                  {report.comparedCities.map((c: any, i: number) => (
+                    <tr key={i} className="hover:bg-slate-900/40 transition">
+                      <td className="py-3 font-bold text-emerald-400">{c.name}</td>
+                      <td className="py-3 font-bold text-white">{c.overall} / 100</td>
+                      <td className="py-3 text-slate-300">{c.air} / 100</td>
+                      <td className="py-3 text-slate-300">{c.water} / 100</td>
+                      <td className="py-3 text-slate-300">{c.green} / 100</td>
+                      <td className="py-3 text-slate-300">{c.climate} / 100</td>
+                      <td className="py-3 text-slate-300">{c.waste} / 100</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TIMELINE TAB */}
+        {activeTab === "timeline" && (
+          <div className="p-6 rounded-2xl bg-[#0C1222] border border-slate-800/80 space-y-6">
+            <div>
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <Clock className="w-5 h-5 text-cyan-400" />
+                Multi-Year Health Trajectory
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Historical planetary score tracking over time for {report.cityName}.
+              </p>
+            </div>
+
+            <div className="h-72 w-full pt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={report.timeline}>
+                  <XAxis dataKey="year" stroke="#64748b" fontSize={12} tickLine={false} />
+                  <YAxis stroke="#64748b" fontSize={12} domain={[0, 100]} tickLine={false} />
+                  <Tooltip contentStyle={{ backgroundColor: "#060913", borderColor: "#1e293b", borderRadius: "8px", fontSize: "12px" }} />
+                  <Line type="monotone" dataKey="score" stroke="#38bdf8" strokeWidth={3} dot={{ fill: "#38bdf8", r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/60 text-xs text-slate-300">
+              <span className="font-bold text-white">Trajectory Note: </span>
+              {report.timelineStatus}
+            </div>
+          </div>
+        )}
+
+        {/* RECOMMENDATIONS TAB */}
+        {activeTab === "recommendations" && (
+          <div className="p-6 rounded-2xl bg-[#0C1222] border border-slate-800/80 space-y-5">
+            <div>
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-amber-400" />
+                Actionable Municipal Recommendations
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Targeted policy changes to boost environmental metrics for {report.cityName}.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {report.recommendations.map((rec: any) => (
+                <div key={rec.id} className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/60 flex items-start gap-3.5 text-xs">
+                  <span className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 font-bold flex items-center justify-center shrink-0 border border-amber-500/20 text-xs">
+                    {rec.id}
+                  </span>
+                  <div>
+                    <h4 className="font-semibold text-slate-200 mb-1">Priority Action #{rec.id}</h4>
+                    <p className="text-slate-400 leading-relaxed">{rec.title}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* SAVED REPORTS TAB */}
+        {activeTab === "saved" && (
+          <div className="p-6 rounded-2xl bg-[#0C1222] border border-slate-800/80 space-y-5">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <Bookmark className="w-5 h-5 text-emerald-400" />
+              Saved City Reports ({savedReports.length})
+            </h3>
+
+            {savedReports.length === 0 ? (
+              <div className="p-8 text-center bg-slate-900/30 rounded-xl border border-slate-800/50">
+                <p className="text-xs text-slate-400">No saved reports yet. Click "Save Report" on any scanned city to bookmark it here!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {savedReports.map((item, idx) => (
+                  <div key={idx} className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/60 text-xs space-y-2">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-bold text-white text-sm">{item.cityName}</h4>
+                      <span className="text-emerald-400 font-bold">{item.overallScore}/100</span>
+                    </div>
+                    <p className="text-slate-400 line-clamp-2">{item.summary}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ABOUT TAB */}
+        {activeTab === "about" && (
+          <div className="p-6 rounded-2xl bg-[#0C1222] border border-slate-800/80 space-y-4 text-xs text-slate-300">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <Info className="w-5 h-5 text-cyan-400" />
+              About DNA of a City
+            </h3>
+            <p className="leading-relaxed">
+              DNA of a City synthesizes live real-time environmental telemetry to calculate structured indicators across key urban health dimensions including Air Quality, Water Safety, Canopy Cover, Climate Resilience, and Solid Waste Management.
+            </p>
+          </div>
         )}
       </main>
     </div>
