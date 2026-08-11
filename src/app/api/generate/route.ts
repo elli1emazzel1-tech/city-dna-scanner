@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       metrics: {
         air: {
           score: airScore,
-          trend: liveAqi > 100 ? "Unhealthy" : "Stable",
+          trend: liveAqi > 100 ? "Unhealthy ↗" : "Stable →",
           sparkline: [Math.max(0, airScore - 6), Math.max(0, airScore - 3), airScore],
           indicators: [
             `AQI Index: ${liveAqi}`,
@@ -74,25 +74,31 @@ export async function POST(req: Request) {
         },
         water: {
           score: waterScore,
-          trend: waterScore > 70 ? "Improving" : "Stable",
+          trend: waterScore > 70 ? "Improving ↗" : "Stable →",
           sparkline: [waterScore - 4, waterScore - 1, waterScore],
           indicators: ["Drinking water safety index", "Wastewater treatment %"]
         },
+        green: {
+          score: natureScore,
+          trend: natureScore < 55 ? "Declining ↘" : "Stable →",
+          sparkline: [natureScore + 3, natureScore + 1, natureScore],
+          indicators: ["Tree canopy density", "Per capita green space"]
+        },
         nature: {
           score: natureScore,
-          trend: natureScore < 55 ? "Declining" : "Stable",
+          trend: natureScore < 55 ? "Declining ↘" : "Stable →",
           sparkline: [natureScore + 3, natureScore + 1, natureScore],
           indicators: ["Tree canopy density", "Per capita green space"]
         },
         climate: {
           score: climateScore,
-          trend: "Improving",
+          trend: "Improving ↗",
           sparkline: [climateScore - 5, climateScore - 2, climateScore],
           indicators: ["Heatwave preparedness", "Flood management infrastructure"]
         },
         waste: {
           score: wasteScore,
-          trend: "Modernizing",
+          trend: "Modernizing →",
           sparkline: [wasteScore - 3, wasteScore - 1, wasteScore],
           indicators: ["Source segregation rate", "Recycling efficiency"]
         }
@@ -106,7 +112,7 @@ export async function POST(req: Request) {
           `Station Location: ${stationName}`
         ]
       },
-      timelineNote: "Modeled Historical & Real-Time Telemetry",
+      timelineStatus: "Modeled Historical & Real-Time Telemetry",
       timeline: [
         { year: "2015", score: Math.max(10, overall - 12) },
         { year: "2020", score: Math.max(10, overall - 5) },
@@ -119,10 +125,10 @@ export async function POST(req: Request) {
         "Expand regional real-time environmental sensor coverage across municipal borders."
       ],
       comparedCities: [
-        { name: cleanCity.toUpperCase(), overall, air: airScore, water: waterScore, nature: natureScore, climate: climateScore, waste: wasteScore },
-        { name: "TOKYO", overall: 78, air: 82, water: 85, nature: 65, climate: 80, waste: 88 },
-        { name: "LONDON", overall: 74, air: 78, water: 80, nature: 72, climate: 75, waste: 70 },
-        { name: "NEW YORK", overall: 68, air: 70, water: 75, nature: 58, climate: 72, waste: 65 }
+        { name: cleanCity.toUpperCase(), overall, air: airScore, water: waterScore, green: natureScore, nature: natureScore, climate: climateScore, waste: wasteScore },
+        { name: "TOKYO", overall: 78, air: 82, water: 85, green: 65, nature: 65, climate: 80, waste: 88 },
+        { name: "LONDON", overall: 74, air: 78, water: 80, green: 72, nature: 72, climate: 75, waste: 70 },
+        { name: "NEW YORK", overall: 68, air: 70, water: 75, green: 58, nature: 58, climate: 72, waste: 65 }
       ]
     });
   } catch (err) {

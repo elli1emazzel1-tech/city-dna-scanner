@@ -34,7 +34,7 @@ import {
 export default function Home() {
   const [cityInput, setCityInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [activeTab, setActiveTab] = useState<string>("compare"); // Default or dynamic
   const [savedReports, setSavedReports] = useState<any[]>([]);
   const [isSaved, setIsSaved] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -51,6 +51,7 @@ export default function Home() {
     }
   }, []);
 
+  // Default state with guaranteed metric object keys
   const [report, setReport] = useState<any>({
     cityName: "Your City",
     country: "Your Country",
@@ -117,11 +118,11 @@ export default function Home() {
           summary: data.summary || "Real-time environmental diagnostic generated via sensor streams.",
           reportDate: "Just Now",
           metrics: {
-            air: { score: data.metrics?.air?.score || 80, trend: data.metrics?.air?.trend || "Stable →", sparkline: data.metrics?.air?.sparkline || [70, 75, 80] },
-            water: { score: data.metrics?.water?.score || 85, trend: data.metrics?.water?.trend || "Stable →", sparkline: data.metrics?.water?.sparkline || [80, 83, 85] },
-            green: { score: data.metrics?.green?.score || data.metrics?.nature?.score || 65, trend: data.metrics?.green?.trend || "Stable →", sparkline: [60, 62, 65] },
-            climate: { score: data.metrics?.climate?.score || 68, trend: data.metrics?.climate?.trend || "Increasing ↗", sparkline: [60, 64, 68] },
-            waste: { score: data.metrics?.waste?.score || 60, trend: data.metrics?.waste?.trend || "Needs improvement →", sparkline: [55, 58, 60] }
+            air: { score: data.metrics?.air?.score ?? data.metrics?.air ?? 80, trend: data.metrics?.air?.trend || "Stable →", sparkline: data.metrics?.air?.sparkline || [70, 75, 80] },
+            water: { score: data.metrics?.water?.score ?? data.metrics?.water ?? 85, trend: data.metrics?.water?.trend || "Stable →", sparkline: data.metrics?.water?.sparkline || [80, 83, 85] },
+            green: { score: data.metrics?.green?.score ?? data.metrics?.nature?.score ?? data.metrics?.green ?? data.metrics?.nature ?? 65, trend: data.metrics?.green?.trend || "Stable →", sparkline: [60, 62, 65] },
+            climate: { score: data.metrics?.climate?.score ?? data.metrics?.climate ?? 68, trend: data.metrics?.climate?.trend || "Increasing ↗", sparkline: [60, 64, 68] },
+            waste: { score: data.metrics?.waste?.score ?? data.metrics?.waste ?? 60, trend: data.metrics?.waste?.trend || "Needs improvement →", sparkline: [55, 58, 60] }
           },
           diagnosis: {
             mainText: data.diagnosis?.mainText || `Environmental diagnostic for ${cityInput} compiled.`,
@@ -489,7 +490,7 @@ function ReportView({ report }: any) {
   );
 }
 
-// VIEW 3: COMPARE CITIES (WITH TOP 10 CLEANEST BENCHMARKS)
+// VIEW 3: COMPARE CITIES (WITH SAFE METRIC EXTRACTION & TOP 10 BENCHMARKS)
 function CompareView({ report }: any) {
   const benchmarkCities = [
     { name: "🇸🇬 Singapore", country: "Singapore", overall: 92, air: 88, water: 95, green: 90, climate: 85, waste: 96 },
@@ -504,15 +505,34 @@ function CompareView({ report }: any) {
     { name: "🇩🇪 Munich", country: "Germany", overall: 84, air: 86, water: 91, green: 83, climate: 78, waste: 89 }
   ];
 
+  // Robust extractor that checks nested score objects or raw numbers
+  const extractScore = (key1: string, key2?: string): number => {
+    if (!report || !report.metrics) return 70;
+    
+    // Check key 1
+    const val1 = report.metrics[key1];
+    if (typeof val1 === "number") return val1;
+    if (val1 && typeof val1.score === "number") return val1.score;
+
+    // Check optional fallback key 2
+    if (key2) {
+      const val2 = report.metrics[key2];
+      if (typeof val2 === "number") return val2;
+      if (val2 && typeof val2.score === "number") return val2.score;
+    }
+
+    return 70; // Fallback score
+  };
+
   const userCity = {
-    name: `📍 ${report.cityName || "Active City"} (Your City)`,
-    country: report.country || "Monitored Region",
-    overall: report.overallScore || 0,
-    air: report.metrics?.air?.score ?? 0,
-    water: report.metrics?.water?.score ?? 0,
-    green: report.metrics?.green?.score ?? report.metrics?.nature?.score ?? 0,
-    climate: report.metrics?.climate?.score ?? 0,
-    waste: report.metrics?.waste?.score ?? 0,
+    name: `📍 ${report?.cityName || "Scanned City"} (Your City)`,
+    country: report?.country || "Monitored Region",
+    overall: report?.overallScore ?? 70,
+    air: extractScore("air"),
+    water: extractScore("water"),
+    green: extractScore("green", "nature"),
+    climate: extractScore("climate"),
+    waste: extractScore("waste"),
     isUserCity: true
   };
 
@@ -526,7 +546,7 @@ function CompareView({ report }: any) {
           Comparative City Benchmark
         </h3>
         <p className="text-xs text-slate-400 mt-1">
-          Comparing <strong>{report.cityName}</strong> against top global benchmark municipalities.
+          Comparing <strong>{report?.cityName || "Your City"}</strong> against top global benchmark municipalities.
         </p>
       </div>
 
@@ -534,7 +554,7 @@ function CompareView({ report }: any) {
         <div>
           <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Current Rank</span>
           <p className="text-sm font-bold text-white mt-0.5">
-            {report.cityName} ranks <span className="text-emerald-400">#{combinedList.findIndex(c => c.isUserCity) + 1}</span> out of {combinedList.length} monitored cities.
+            {report?.cityName || "Your City"} ranks <span className="text-emerald-400">#{combinedList.findIndex(c => c.isUserCity) + 1}</span> out of {combinedList.length} monitored cities.
           </p>
         </div>
         <div className="text-xs text-slate-400">
