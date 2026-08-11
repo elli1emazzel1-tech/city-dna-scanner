@@ -2,7 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
-import GlobeGraphic from "@/components/GlobeGraphic";
+import GlobeGraphic from "./GlobeGraphic";
 import {
   LayoutDashboard,
   FileText,
