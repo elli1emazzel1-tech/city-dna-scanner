@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+// Force Next.js / Vercel to NEVER cache this API route
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const { city } = await req.json();
@@ -114,17 +117,17 @@ export async function POST(req: Request) {
         "Expand regional real-time environmental sensor coverage across municipal borders."
       ],
       comparedCities: [
-        { name: `📍 ${cleanCity.toUpperCase()} (Your City)`, country: stationName, overall, air: airScore, water: waterScore, green: natureScore, climate: climateScore, waste: wasteScore, isUserCity: true },
-        { name: "🇸🇬 Singapore", country: "Singapore", overall: 92, air: 88, water: 95, green: 90, climate: 85, waste: 96 },
-        { name: "🇯🇵 Tokyo", country: "Japan", overall: 90, air: 89, water: 94, green: 82, climate: 84, waste: 95 },
-        { name: "🇨🇭 Zurich", country: "Switzerland", overall: 89, air: 91, water: 96, green: 88, climate: 82, waste: 93 },
-        { name: "🇩🇰 Copenhagen", country: "Denmark", overall: 88, air: 90, water: 92, green: 86, climate: 80, waste: 91 },
-        { name: "🇦🇹 Vienna", country: "Austria", overall: 87, air: 88, water: 95, green: 87, climate: 79, waste: 90 },
-        { name: "🇫🇮 Helsinki", country: "Finland", overall: 87, air: 93, water: 95, green: 89, climate: 78, waste: 88 },
-        { name: "🇳🇴 Oslo", country: "Norway", overall: 86, air: 92, water: 94, green: 88, climate: 77, waste: 89 },
-        { name: "🇮🇸 Reykjavík", country: "Iceland", overall: 86, air: 96, water: 98, green: 84, climate: 75, waste: 85 },
-        { name: "🇳🇿 Wellington", country: "New Zealand", overall: 85, air: 94, water: 93, green: 87, climate: 76, waste: 84 },
-        { name: "🇩🇪 Munich", country: "Germany", overall: 84, air: 86, water: 91, green: 83, climate: 78, waste: 89 }
+        { name: `📍 ${cleanCity.toUpperCase()} (Your City)`, country: stationName, overall, air: airScore, water: waterScore, green: natureScore, nature: natureScore, climate: climateScore, waste: wasteScore, isUserCity: true },
+        { name: "🇸🇬 Singapore", country: "Singapore", overall: 92, air: 88, water: 95, green: 90, nature: 90, climate: 85, waste: 96 },
+        { name: "🇯🇵 Tokyo", country: "Japan", overall: 90, air: 89, water: 94, green: 82, nature: 82, climate: 84, waste: 95 },
+        { name: "🇨🇭 Zurich", country: "Switzerland", overall: 89, air: 91, water: 96, green: 88, nature: 88, climate: 82, waste: 93 },
+        { name: "🇩🇰 Copenhagen", country: "Denmark", overall: 88, air: 90, water: 92, green: 86, nature: 86, climate: 80, waste: 91 },
+        { name: "🇦🇹 Vienna", country: "Austria", overall: 87, air: 88, water: 95, green: 87, nature: 87, climate: 79, waste: 90 },
+        { name: "🇫🇮 Helsinki", country: "Finland", overall: 87, air: 93, water: 95, green: 89, nature: 89, climate: 78, waste: 88 },
+        { name: "🇳🇴 Oslo", country: "Norway", overall: 86, air: 92, water: 94, green: 88, nature: 88, climate: 77, waste: 89 },
+        { name: "🇮🇸 Reykjavík", country: "Iceland", overall: 86, air: 96, water: 98, green: 84, nature: 84, climate: 75, waste: 85 },
+        { name: "🇳🇿 Wellington", country: "New Zealand", overall: 85, air: 94, water: 93, green: 87, nature: 87, climate: 76, waste: 84 },
+        { name: "🇩🇪 Munich", country: "Germany", overall: 84, air: 86, water: 91, green: 83, nature: 83, climate: 78, waste: 89 }
       ]
     });
   } catch (err) {
