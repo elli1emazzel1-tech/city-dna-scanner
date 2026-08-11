@@ -2,7 +2,19 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
-import { ArrowLeftRight, Building2, ShieldAlert, BarChart3, Leaf, Droplets, Wind, Recycling, Flame } from "lucide-react";
+import { ArrowLeftRight, Building2 } from "lucide-react";
+
+interface CityBenchmark {
+  name: string;
+  country: string;
+  overall: number;
+  air: number;
+  water: number;
+  green: number;
+  climate: number;
+  waste: number;
+  isUserCity?: boolean;
+}
 
 export default function Home() {
   const [cityInput, setCityInput] = useState("");
@@ -37,7 +49,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#070B14] text-slate-100 flex flex-col font-sans">
-      {/* Header */}
       <header className="border-b border-slate-800/80 px-6 py-4 flex items-center justify-between bg-[#0C1222]/50 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
@@ -51,7 +62,6 @@ export default function Home() {
       </header>
 
       <div className="flex-1 flex flex-col md:flex-row">
-        {/* Sidebar */}
         <aside className="w-full md:w-64 border-r border-slate-800/80 p-4 bg-[#080D1A] space-y-2">
           <button
             onClick={() => setActiveTab("compare")}
@@ -65,9 +75,7 @@ export default function Home() {
           </button>
         </aside>
 
-        {/* Main Content */}
         <main className="flex-1 p-6 md:p-8 space-y-6 max-w-6xl mx-auto w-full">
-          {/* Search Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0C1222] p-6 rounded-2xl border border-slate-800/80">
             <div>
               <h2 className="text-xl font-bold text-white">Check the <span className="text-emerald-400">Planet Health</span> of Any City</h2>
@@ -91,7 +99,6 @@ export default function Home() {
             </form>
           </div>
 
-          {/* Render Comparison Table */}
           <CompareView report={report} />
         </main>
       </div>
@@ -100,7 +107,7 @@ export default function Home() {
 }
 
 function CompareView({ report }: any) {
-  const defaultBenchmarks = [
+  const defaultBenchmarks: CityBenchmark[] = [
     { name: "🇸🇬 Singapore", country: "Singapore", overall: 92, air: 88, water: 95, green: 90, climate: 85, waste: 96 },
     { name: "🇯🇵 Tokyo", country: "Japan", overall: 90, air: 89, water: 94, green: 82, climate: 84, waste: 95 },
     { name: "🇨🇭 Zurich", country: "Switzerland", overall: 89, air: 91, water: 96, green: 88, climate: 82, waste: 93 },
@@ -115,7 +122,7 @@ function CompareView({ report }: any) {
 
   const userCityName = report?.cityName ? `📍 ${report.cityName} (Your City)` : null;
 
-  const userCity = userCityName ? {
+  const userCity: CityBenchmark | null = userCityName ? {
     name: userCityName,
     country: report?.country || "Monitored Region",
     overall: report?.overallScore ?? 65,
@@ -127,7 +134,7 @@ function CompareView({ report }: any) {
     isUserCity: true
   } : null;
 
-  const combinedList = userCity 
+  const combinedList: CityBenchmark[] = userCity 
     ? [userCity, ...defaultBenchmarks].sort((a, b) => b.overall - a.overall)
     : defaultBenchmarks;
 
@@ -139,7 +146,7 @@ function CompareView({ report }: any) {
             <ArrowLeftRight className="w-5 h-5 text-emerald-400" />
             Global Environmental Benchmark Comparison
           </h3>
-          <p className="text-xs text-slate-400 mt-1">Comparing municipalities against top global benchmark standards.</p>
+          <p className="text-xs text-slate-400 mt-1">Comparing metrics across peer municipalities.</p>
         </div>
       </div>
 
@@ -147,8 +154,7 @@ function CompareView({ report }: any) {
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-slate-800/80 text-slate-400 text-[11px]">
-              <th className="pb-3 font-semibold">Rank</th>
-              <th className="pb-3 font-semibold">City & Country</th>
+              <th className="pb-3 font-semibold">City Name</th>
               <th className="pb-3 font-semibold">Overall Score</th>
               <th className="pb-3 font-semibold">Air</th>
               <th className="pb-3 font-semibold">Water</th>
@@ -163,23 +169,17 @@ function CompareView({ report }: any) {
                 key={i} 
                 className={`transition ${
                   c.isUserCity 
-                    ? "bg-emerald-500/10 border-l-4 border-l-emerald-400 font-bold" 
-                    : "hover:bg-slate-900/40"
+                    ? "bg-emerald-500/10 text-emerald-400 font-bold border-l-4 border-l-emerald-400" 
+                    : "hover:bg-slate-900/40 text-slate-300"
                 }`}
               >
-                <td className="py-3.5 px-2 text-slate-400 font-mono">#{i + 1}</td>
-                <td className={`py-3.5 ${c.isUserCity ? "text-emerald-400 font-bold" : "text-white"}`}>
-                  <div>
-                    <span>{c.name}</span>
-                    <p className="text-[10px] text-slate-500 font-normal">{c.country}</p>
-                  </div>
-                </td>
+                <td className="py-3.5 font-semibold">{c.name}</td>
                 <td className="py-3.5 font-bold text-white">{c.overall} / 100</td>
-                <td className="py-3.5 text-slate-300">{c.air} / 100</td>
-                <td className="py-3.5 text-slate-300">{c.water} / 100</td>
-                <td className="py-3.5 text-slate-300">{c.green} / 100</td>
-                <td className="py-3.5 text-slate-300">{c.climate} / 100</td>
-                <td className="py-3.5 text-slate-300">{c.waste} / 100</td>
+                <td className="py-3.5">{c.air} / 100</td>
+                <td className="py-3.5">{c.water} / 100</td>
+                <td className="py-3.5">{c.green} / 100</td>
+                <td className="py-3.5">{c.climate} / 100</td>
+                <td className="py-3.5">{c.waste} / 100</td>
               </tr>
             ))}
           </tbody>
