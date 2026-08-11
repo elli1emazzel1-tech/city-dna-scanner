@@ -2,7 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
-import GlobeGraphic from "./GlobeGraphic";
+import GlobeGraphic from "@/components/GlobeGraphic";
 import {
   LayoutDashboard,
   FileText,
@@ -16,32 +16,20 @@ import {
   Wind,
   Droplets,
   Trees,
-  Shield,
-  Trash2,
+  Thermometer,
+  Recycle,
   Sparkles,
   TrendingUp,
+  MapPin,
   CheckCircle2,
-  AlertCircle,
+  ChevronRight,
 } from "lucide-react";
-
-interface CityBenchmark {
-  name: string;
-  country: string;
-  overall: number;
-  air: number;
-  water: number;
-  green: number;
-  climate: number;
-  waste: number;
-  isUserCity?: boolean;
-}
 
 export default function Home() {
   const [cityInput, setCityInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [report, setReport] = useState<any>(null);
-  const [savedReports, setSavedReports] = useState<any[]>([]);
 
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,16 +57,6 @@ export default function Home() {
     }
   };
 
-  const handleSaveReport = () => {
-    if (!report) return;
-    if (savedReports.some((r) => r.cityName === report.cityName)) {
-      alert("Report already saved!");
-      return;
-    }
-    setSavedReports([report, ...savedReports]);
-    alert("Report saved to Saved Reports!");
-  };
-
   const sidebarNav = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "report", label: "City Report", icon: FileText },
@@ -86,27 +64,27 @@ export default function Home() {
     { id: "timeline", label: "Timeline", icon: Clock },
     { id: "recommendations", label: "Recommendations", icon: Lightbulb },
     { id: "saved", label: "Saved Reports", icon: Bookmark },
-    { id: "methodology", label: "Methodology", icon: Info },
+    { id: "about", label: "About", icon: Info },
   ];
 
   return (
-    <div className="min-h-screen bg-[#060913] text-slate-100 flex flex-col font-sans">
-      {/* Top Header */}
-      <header className="border-b border-slate-800/60 px-6 py-4 flex items-center justify-between bg-[#0B0F1D]/80 backdrop-blur-md sticky top-0 z-50">
+    <div className="min-h-screen bg-[#060813] text-slate-100 flex flex-col font-sans">
+      {/* Top Navigation */}
+      <header className="border-b border-slate-800/60 px-6 py-4 flex items-center justify-between bg-[#080C19]/90 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
             <Globe className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-base font-bold text-white tracking-wide">DNA of a City</h1>
-            <p className="text-[11px] text-slate-400">Environmental Health Engine</p>
+            <p className="text-[11px] text-slate-400">AI Environmental Health Scanner</p>
           </div>
         </div>
       </header>
 
       <div className="flex-1 flex flex-col md:flex-row">
-        {/* Sidebar */}
-        <aside className="w-full md:w-64 border-r border-slate-800/60 p-4 bg-[#080C17] space-y-1 flex-shrink-0 flex flex-col justify-between min-h-[calc(100vh-65px)]">
+        {/* Left Sidebar */}
+        <aside className="w-full md:w-64 border-r border-slate-800/60 p-4 bg-[#080C17] flex-shrink-0 flex flex-col justify-between min-h-[calc(100vh-65px)]">
           <div className="space-y-1">
             {sidebarNav.map((item) => {
               const Icon = item.icon;
@@ -128,35 +106,39 @@ export default function Home() {
             })}
           </div>
 
-          {/* Earth Globe Component & Card */}
-          <div className="pt-4 px-2">
+          {/* Interactive Globe & Sidebar Footer */}
+          <div className="pt-4 px-2 space-y-3">
             <GlobeGraphic />
-            <div className="p-4 rounded-xl bg-[#0B1021] border border-slate-800/80 space-y-1 mt-2">
-              <span className="text-[11px] font-bold text-slate-300 block">AI for a Better Planet</span>
-              <p className="text-[10px] text-slate-500 leading-relaxed">Empowering decisions for sustainable tomorrow.</p>
+            <div className="p-4 rounded-2xl bg-[#0B1021] border border-slate-800/80 space-y-1">
+              <span className="text-[11px] font-bold text-slate-200 block">AI for a Better Planet</span>
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                Empowering decisions for sustainable tomorrow.
+              </p>
             </div>
           </div>
         </aside>
 
-        {/* Main Content Area */}
+        {/* Main Content Dashboard */}
         <main className="flex-1 p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
-          {/* Search Header Bar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0B0F1D] p-6 rounded-2xl border border-slate-800/80">
+          {/* Top Search Banner */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0B0F21] p-6 rounded-2xl border border-slate-800/80">
             <div>
               <h2 className="text-2xl font-black text-white tracking-tight">
-                Environmental Health Index <span className="text-emerald-400 font-extrabold">Scanner</span>
+                Check the <span className="text-emerald-400">Planet Health</span> of Any City
               </h2>
-              <p className="text-xs text-slate-400 mt-1">Calibrated environmental diagnostic & policy recommendation engine.</p>
+              <p className="text-xs text-slate-400 mt-1">
+                AI analyzes real environmental data to generate a comprehensive health profile.
+              </p>
             </div>
             <form onSubmit={handleScan} className="flex items-center gap-2 w-full md:w-auto">
               <div className="relative w-full md:w-72">
                 <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
                 <input
                   type="text"
-                  placeholder="Enter city (e.g. Mumbai, Tokyo)..."
+                  placeholder="Enter city name..."
                   value={cityInput}
                   onChange={(e) => setCityInput(e.target.value)}
-                  className="bg-[#070A14] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 w-full"
+                  className="bg-[#060914] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 w-full"
                 />
               </div>
               <button
@@ -169,390 +151,345 @@ export default function Home() {
             </form>
           </div>
 
-          {/* Tab Views */}
-          {activeTab === "dashboard" && <DashboardView report={report} onSave={handleSaveReport} />}
-          {activeTab === "report" && <ReportView report={report} />}
-          {activeTab === "compare" && <CompareView report={report} />}
-          {activeTab === "timeline" && <TimelineView report={report} />}
-          {activeTab === "recommendations" && <RecommendationsView report={report} />}
-          {activeTab === "saved" && <SavedView savedReports={savedReports} />}
-          {activeTab === "methodology" && <MethodologyView />}
+          {/* Dashboard View */}
+          {activeTab === "dashboard" && <ExactDashboardView report={report} />}
         </main>
       </div>
     </div>
   );
 }
 
-// ---------------- DASHBOARD VIEW ----------------
+// ---------------- EXACT DESIGN MATCH DASHBOARD ----------------
 
-function DashboardView({ report, onSave }: any) {
-  const isScanned = !!report;
+function ExactDashboardView({ report }: { report: any }) {
+  const cityName = report?.cityName || "Your City";
+  const country = report?.country || "Your Country";
+  const overallScore = report?.overallScore ?? 74;
+  const statusText = report?.overallStatus || "Good";
 
-  const score = isScanned ? report.overallScore : 0;
-  const status = isScanned ? report.overallStatus || "Moderate Resilience" : "Pending Scan";
-
-  const air = isScanned ? report.metrics?.air?.score ?? 50 : 0;
-  const water = isScanned ? report.metrics?.water?.score ?? 50 : 0;
-  const green = isScanned ? report.metrics?.green?.score ?? report.metrics?.nature?.score ?? 50 : 0;
-  const climate = isScanned ? report.metrics?.climate?.score ?? 50 : 0;
-  const waste = isScanned ? report.metrics?.waste?.score ?? 50 : 0;
+  const air = report?.metrics?.air?.score ?? 82;
+  const water = report?.metrics?.water?.score ?? 88;
+  const green = report?.metrics?.green?.score ?? report?.metrics?.nature?.score ?? 61;
+  const climate = report?.metrics?.climate?.score ?? 68;
+  const waste = report?.metrics?.waste?.score ?? 57;
 
   return (
     <div className="space-y-6">
-      {/* Top Main Diagnostic Card */}
-      <div className="bg-[#0B0F1D] p-6 md:p-8 rounded-2xl border border-slate-800/80 relative overflow-hidden">
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${isScanned ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`}></span>
-            {isScanned ? "Telemetry Live" : "Awaiting Scan"}
-          </span>
-          <span className="px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-slate-300 text-[11px] font-semibold">
-            How is this calculated?
-          </span>
-        </div>
+      {/* 1. Hero Skyline Banner */}
+      <div className="relative rounded-2xl overflow-hidden bg-[#0C1226] border border-slate-800/80 p-8 min-h-[220px] flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        {/* Background Image Overlay */}
+        <div
+          className="absolute inset-0 opacity-25 bg-cover bg-center pointer-events-none"
+          style={{
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1477959858617-67f30ac4ce78?q=80&w=1200&auto=format&fit=crop')",
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0C1226] via-[#0C1226]/80 to-transparent pointer-events-none" />
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-2">
-            <h3 className="text-3xl font-black text-white tracking-tight">
-              {isScanned ? report.cityName : "City Diagnostic"}
-            </h3>
-            <p className="text-xs text-slate-400">
-              {isScanned ? report.country : "Enter a city to load dataset profile"}
-            </p>
-            <p className="text-[11px] text-slate-500 max-w-xl pt-1">
-              Run a city scan to analyze local air, water, canopy, climate resilience, and waste management indicators.
+        {/* Left Header Content */}
+        <div className="relative z-10 space-y-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Analysis Complete
+          </div>
+          <div>
+            <h3 className="text-3xl font-black text-white tracking-tight">{cityName}</h3>
+            <p className="text-xs text-slate-300 flex items-center gap-1.5 mt-1">
+              <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+              {country}
             </p>
           </div>
+          <p className="text-[11px] text-slate-400 font-mono pt-1">
+            Report generated on Aug 8, 2026 • 10:30 PM
+          </p>
+        </div>
 
-          {/* Circle Gauge Score */}
-          <div className="flex items-center gap-6">
-            <div className="relative flex items-center justify-center">
-              <svg className="w-28 h-28 transform -rotate-90">
-                <circle cx="56" cy="56" r="46" stroke="#1E293B" strokeWidth="8" fill="transparent" />
-                <circle
-                  cx="56"
-                  cy="56"
-                  r="46"
-                  stroke="#10B981"
-                  strokeWidth="8"
-                  strokeDasharray={289}
-                  strokeDashoffset={289 - (289 * score) / 100}
-                  strokeLinecap="round"
-                  fill="transparent"
-                  className="transition-all duration-1000 ease-out"
-                />
-              </svg>
-              <div className="absolute text-center">
-                <span className="text-2xl font-black text-white block">{score}</span>
-                <span className="text-[10px] text-slate-500 font-bold block">/100</span>
+        {/* Right Gauge & Summary */}
+        <div className="relative z-10 flex items-center gap-6 bg-[#080C1B]/80 p-5 rounded-2xl border border-slate-800/80 backdrop-blur-md">
+          <div className="relative flex items-center justify-center">
+            <svg className="w-24 h-24 transform -rotate-90">
+              <circle cx="48" cy="48" r="38" stroke="#1E293B" strokeWidth="7" fill="transparent" />
+              <circle
+                cx="48"
+                cy="48"
+                r="38"
+                stroke="#10B981"
+                strokeWidth="7"
+                strokeDasharray={238}
+                strokeDashoffset={238 - (238 * overallScore) / 100}
+                strokeLinecap="round"
+                fill="transparent"
+                className="transition-all duration-1000 ease-out"
+              />
+            </svg>
+            <div className="absolute text-center">
+              <span className="text-2xl font-black text-white block">{overallScore}</span>
+              <span className="text-[10px] text-slate-400 font-bold block">/100</span>
+            </div>
+          </div>
+
+          <div className="space-y-1 max-w-xs">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+              Overall Planet Health
+            </span>
+            <p className="text-base font-bold text-emerald-400">{statusText}</p>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Your city is making progress in several areas, but faces environmental challenges.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Health Score Overview Cards */}
+      <div className="space-y-3">
+        <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Health Score Overview</h4>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+          <MetricOverviewCard icon={Wind} label="Air" score={air} status="Improving ↗" trendColor="text-emerald-400" />
+          <MetricOverviewCard icon={Droplets} label="Water" score={water} status="Stable →" trendColor="text-emerald-400" />
+          <MetricOverviewCard icon={Trees} label="Green Space" score={green} status="Declining ↘" trendColor="text-amber-400" />
+          <MetricOverviewCard icon={Thermometer} label="Climate Risk" score={climate} status="Increasing ↗" trendColor="text-amber-400" />
+          <MetricOverviewCard icon={Recycle} label="Waste" score={waste} status="Needs improvement →" trendColor="text-amber-400" />
+        </div>
+      </div>
+
+      {/* 3. Three-Column Detailed Analysis Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Column 1: AI Diagnosis */}
+        <div className="p-6 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4 flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <h5 className="text-sm font-bold text-white">AI Diagnosis</h5>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Your city has shown significant improvement in air and water quality over the past decade. However, increasing climate risks and unequal access to green spaces remain critical challenges.
+            </p>
+
+            <ul className="space-y-2 pt-2">
+              <li className="text-xs text-slate-300 flex items-start gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
+                Air quality has improved by 12% since 2018
+              </li>
+              <li className="text-xs text-slate-300 flex items-start gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
+                Rising temperatures and heatwave frequency
+              </li>
+              <li className="text-xs text-slate-300 flex items-start gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
+                Urban greenery is below recommended levels
+              </li>
+              <li className="text-xs text-slate-300 flex items-start gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
+                Recycling rate is lower than similar cities
+              </li>
+            </ul>
+          </div>
+
+          <button className="w-full mt-4 py-2.5 px-4 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-xs font-semibold text-slate-200 border border-slate-700/50 flex items-center justify-center gap-2 transition">
+            View Full Analysis <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Column 2: City Health Timeline */}
+        <div className="p-6 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4 flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              <h5 className="text-sm font-bold text-white">City Health Timeline</h5>
+            </div>
+
+            {/* Simulated Line Chart Points */}
+            <div className="pt-6 pb-2">
+              <div className="flex justify-between items-end h-28 px-4 border-b border-slate-800/80 relative">
+                <TimelinePoint year="2010" score={68} height="h-16" />
+                <TimelinePoint year="2015" score={71} height="h-20" />
+                <TimelinePoint year="2020" score={74} height="h-24" isHighlighted />
+                <TimelinePoint year="2026" score={72} height="h-20" />
               </div>
             </div>
 
-            <div className="space-y-1">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">City Health Index</span>
-              <p className="text-sm font-bold text-emerald-400">{status}</p>
-              {isScanned && (
-                <button
-                  onClick={onSave}
-                  className="mt-2 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold rounded-lg transition block"
-                >
-                  Save Report
-                </button>
-              )}
+            <div className="p-3 rounded-xl bg-[#070A16] border border-slate-800/60 space-y-1">
+              <span className="text-[10px] text-slate-500 font-bold block">Status</span>
+              <p className="text-xs font-semibold text-emerald-400">
+                Improving, <span className="text-slate-400">but climate risks increasing</span>
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="mt-6 pt-4 border-t border-slate-800/60 text-[10px] text-slate-500 flex flex-wrap gap-4 font-mono">
-          <span>Weighted: Air(25%)</span>
-          <span>+ Water(20%)</span>
-          <span>+ Nature(20%)</span>
-          <span>+ Climate(20%)</span>
-          <span>+ Waste(15%)</span>
+        {/* Column 3: Top Recommendations */}
+        <div className="p-6 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4 flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-emerald-400" />
+              <h5 className="text-sm font-bold text-white">Top Recommendations</h5>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              <RecommendationRow
+                number={1}
+                text="Increase tree coverage in dense urban areas, especially in low-income neighborhoods."
+              />
+              <RecommendationRow
+                number={2}
+                text="Improve waste sorting and increase recycling rates through better infrastructure."
+              />
+              <RecommendationRow
+                number={3}
+                text="Expand cooling infrastructure and heat resilience programs."
+              />
+            </div>
+          </div>
+
+          <button className="w-full mt-4 py-2.5 px-4 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-xs font-semibold text-slate-200 border border-slate-700/50 flex items-center justify-center gap-2 transition">
+            View All Recommendations <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* Sub Indicators Section */}
-      <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-            Core Environmental Metrics & Sub-Indicators
-          </h4>
-          <span className="text-[11px] text-emerald-400 hover:underline cursor-pointer">View Indicator Breakdown</span>
+      {/* 4. Compare Cities Table */}
+      <div className="p-6 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4">
+        <div className="flex items-center gap-2">
+          <ArrowLeftRight className="w-4 h-4 text-emerald-400" />
+          <h5 className="text-sm font-bold text-white">Compare Cities</h5>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <IndicatorCard icon={Wind} label="Air Quality" value={air} isScanned={isScanned} />
-          <IndicatorCard icon={Droplets} label="Water Quality" value={water} isScanned={isScanned} />
-          <IndicatorCard icon={Trees} label="Green Canopy" value={green} isScanned={isScanned} />
-          <IndicatorCard icon={Shield} label="Climate Resilience" value={climate} isScanned={isScanned} />
-          <IndicatorCard icon={Trash2} label="Waste Systems" value={waste} isScanned={isScanned} />
-        </div>
-      </div>
-
-      {/* Bottom 3 Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* AI Diagnosis */}
-        <div className="p-6 rounded-2xl bg-[#0B0F1D] border border-slate-800/80 space-y-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-emerald-400" />
-            <h5 className="text-sm font-bold text-white">AI Diagnosis & Findings</h5>
-          </div>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            {isScanned
-              ? report.summary
-              : "City environmental diagnosis will load after scanning."}
-          </p>
-        </div>
-
-        {/* Historical Health Index */}
-        <div className="p-6 rounded-2xl bg-[#0B0F1D] border border-slate-800/80 space-y-3">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
-            <h5 className="text-sm font-bold text-white">Historical Health Index</h5>
-          </div>
-          <p className="text-xs text-slate-400">Modeled Historical Estimate</p>
-          <div className="pt-2 flex items-baseline gap-4">
-            <span className="text-3xl font-black text-white">{isScanned ? score - 8 : "--"}</span>
-            <span className="text-xs text-emerald-400 font-bold">+8 pts since 2020</span>
-          </div>
-        </div>
-
-        {/* Policy Actions */}
-        <div className="p-6 rounded-2xl bg-[#0B0F1D] border border-slate-800/80 space-y-3">
-          <div className="flex items-center gap-2">
-            <Lightbulb className="w-4 h-4 text-emerald-400" />
-            <h5 className="text-sm font-bold text-white">Policy & Infrastructure Actions</h5>
-          </div>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            {isScanned
-              ? "Implement zero-emission public transport zones and increase urban forest cover."
-              : "Scan a city to view actionable recommendations."}
-          </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-slate-800/80 text-slate-400 text-[11px]">
+                <th className="pb-3 font-semibold">City</th>
+                <th className="pb-3 font-semibold">Overall Score</th>
+                <th className="pb-3 font-semibold">Air</th>
+                <th className="pb-3 font-semibold">Water</th>
+                <th className="pb-3 font-semibold">Green Space</th>
+                <th className="pb-3 font-semibold">Climate Risk</th>
+                <th className="pb-3 font-semibold">Waste</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/40 text-[12px]">
+              <tr className="text-emerald-400 font-bold bg-emerald-500/5">
+                <td className="py-3.5 pl-2">{cityName}</td>
+                <td className="py-3.5 flex items-center gap-2">
+                  <span>{overallScore} / 100</span>
+                  <div className="w-16 bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-emerald-400 h-full" style={{ width: `${overallScore}%` }} />
+                  </div>
+                </td>
+                <td className="py-3.5">{air} / 100</td>
+                <td className="py-3.5">{water} / 100</td>
+                <td className="py-3.5 text-amber-400">{green} / 100</td>
+                <td className="py-3.5 text-amber-400">{climate} / 100</td>
+                <td className="py-3.5 text-amber-400">{waste} / 100</td>
+              </tr>
+              <tr className="text-slate-300">
+                <td className="py-3.5 pl-2 font-medium">London</td>
+                <td className="py-3.5 flex items-center gap-2">
+                  <span>78 / 100</span>
+                  <div className="w-16 bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-emerald-400 h-full" style={{ width: "78%" }} />
+                  </div>
+                </td>
+                <td className="py-3.5">85 / 100</td>
+                <td className="py-3.5">90 / 100</td>
+                <td className="py-3.5">72 / 100</td>
+                <td className="py-3.5">65 / 100</td>
+                <td className="py-3.5">60 / 100</td>
+              </tr>
+              <tr className="text-slate-300">
+                <td className="py-3.5 pl-2 font-medium">Tokyo</td>
+                <td className="py-3.5 flex items-center gap-2">
+                  <span>81 / 100</span>
+                  <div className="w-16 bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-emerald-400 h-full" style={{ width: "81%" }} />
+                  </div>
+                </td>
+                <td className="py-3.5">89 / 100</td>
+                <td className="py-3.5">92 / 100</td>
+                <td className="py-3.5">80 / 100</td>
+                <td className="py-3.5">63 / 100</td>
+                <td className="py-3.5">65 / 100</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 }
 
-function IndicatorCard({ icon: Icon, label, value, isScanned }: any) {
+// ---------------- SUB-COMPONENTS ----------------
+
+function MetricOverviewCard({
+  icon: Icon,
+  label,
+  score,
+  status,
+  trendColor,
+}: {
+  icon: any;
+  label: string;
+  score: number;
+  status: string;
+  trendColor: string;
+}) {
   return (
-    <div className="p-4 rounded-xl bg-[#0B0F1D] border border-slate-800/80 space-y-3">
+    <div className="p-4 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-3">
       <div className="flex justify-between items-center">
-        <Icon className="w-4 h-4 text-emerald-400" />
-        <span className="text-[10px] text-slate-500 font-mono">{isScanned ? "LIVE" : "N/A"}</span>
+        <div className="p-2 rounded-xl bg-slate-800/50 text-emerald-400">
+          <Icon className="w-4 h-4" />
+        </div>
       </div>
       <div>
-        <span className="text-[11px] text-slate-400 block font-medium">{label}</span>
-        <p className="text-xl font-black text-white mt-0.5">
-          {isScanned ? value : 0} <span className="text-xs font-normal text-slate-500">/100</span>
+        <span className="text-xs text-slate-400 block font-medium">{label}</span>
+        <p className="text-2xl font-black text-white mt-0.5">
+          {score} <span className="text-xs font-normal text-slate-500">/100</span>
         </p>
-      </div>
-      <div className="w-full bg-slate-800/60 h-1 rounded-full overflow-hidden">
-        <div className="bg-emerald-400 h-full rounded-full transition-all duration-700" style={{ width: `${value}%` }}></div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------- OTHER VIEWS ----------------
-
-function ReportView({ report }: any) {
-  if (!report) {
-    return (
-      <div className="p-8 text-center bg-[#0B0F1D] rounded-2xl border border-slate-800/80 text-slate-400">
-        <p className="text-sm">Scan a city first to generate a full report.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6 rounded-2xl bg-[#0B0F1D] border border-slate-800/80 space-y-4">
-      <h3 className="text-lg font-bold text-white">Full Environmental Report: {report.cityName}</h3>
-      <p className="text-xs text-slate-300 leading-relaxed">{report.summary}</p>
-      {report.diagnosis?.bullets && (
-        <ul className="space-y-2 pt-2">
-          {report.diagnosis.bullets.map((b: string, i: number) => (
-            <li key={i} className="text-xs text-slate-400 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              {b}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function CompareView({ report }: any) {
-  const defaultBenchmarks: CityBenchmark[] = [
-    { name: "🇸🇬 Singapore", country: "Singapore", overall: 92, air: 88, water: 95, green: 90, climate: 85, waste: 96 },
-    { name: "🇯🇵 Tokyo", country: "Japan", overall: 90, air: 89, water: 94, green: 82, climate: 84, waste: 95 },
-    { name: "🇨🇭 Zurich", country: "Switzerland", overall: 89, air: 91, water: 96, green: 88, climate: 82, waste: 93 },
-    { name: "🇩🇰 Copenhagen", country: "Denmark", overall: 88, air: 90, water: 92, green: 86, climate: 80, waste: 91 },
-    { name: "🇦🇹 Vienna", country: "Austria", overall: 87, air: 88, water: 95, green: 87, climate: 79, waste: 90 },
-    { name: "🇫🇮 Helsinki", country: "Finland", overall: 87, air: 93, water: 95, green: 89, climate: 78, waste: 88 },
-    { name: "🇳🇴 Oslo", country: "Norway", overall: 86, air: 92, water: 94, green: 88, climate: 77, waste: 89 },
-    { name: "🇮🇸 Reykjavík", country: "Iceland", overall: 86, air: 96, water: 98, green: 84, climate: 75, waste: 85 },
-    { name: "🇳🇿 Wellington", country: "New Zealand", overall: 85, air: 94, water: 93, green: 87, climate: 76, waste: 84 },
-    { name: "🇩🇪 Munich", country: "Germany", overall: 84, air: 86, water: 91, green: 83, climate: 78, waste: 89 },
-  ];
-
-  const userCityName = report?.cityName ? `📍 ${report.cityName} (Your City)` : null;
-
-  const userCity: CityBenchmark | null = userCityName
-    ? {
-        name: userCityName,
-        country: report?.country || "Monitored Region",
-        overall: report?.overallScore ?? 65,
-        air: report?.metrics?.air?.score ?? 47,
-        water: report?.metrics?.water?.score ?? 78,
-        green: report?.metrics?.green?.score ?? report?.metrics?.nature?.score ?? 60,
-        climate: report?.metrics?.climate?.score ?? 67,
-        waste: report?.metrics?.waste?.score ?? 84,
-        isUserCity: true,
-      }
-    : null;
-
-  const combinedList: CityBenchmark[] = userCity
-    ? [userCity, ...defaultBenchmarks].sort((a, b) => b.overall - a.overall)
-    : defaultBenchmarks;
-
-  return (
-    <div className="p-6 rounded-2xl bg-[#0B0F1D] border border-slate-800/80 space-y-6">
-      <div className="border-b border-slate-800/80 pb-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <ArrowLeftRight className="w-5 h-5 text-emerald-400" />
-          Global Environmental Benchmark Comparison
-        </h3>
-        <p className="text-xs text-slate-400 mt-1">Comparing metrics across peer municipalities.</p>
+        <span className={`text-[11px] font-semibold block mt-1 ${trendColor}`}>{status}</span>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-slate-800/80 text-slate-400 text-[11px]">
-              <th className="pb-3 font-semibold">City Name</th>
-              <th className="pb-3 font-semibold">Overall Score</th>
-              <th className="pb-3 font-semibold">Air</th>
-              <th className="pb-3 font-semibold">Water</th>
-              <th className="pb-3 font-semibold">Green Space</th>
-              <th className="pb-3 font-semibold">Climate Risk</th>
-              <th className="pb-3 font-semibold">Waste</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/40 text-[12px]">
-            {combinedList.map((c, i) => (
-              <tr
-                key={i}
-                className={`transition ${
-                  c.isUserCity
-                    ? "bg-emerald-500/10 text-emerald-400 font-bold border-l-4 border-l-emerald-400"
-                    : "hover:bg-slate-900/40 text-slate-300"
-                }`}
-              >
-                <td className="py-3.5 font-semibold">{c.name}</td>
-                <td className="py-3.5 font-bold text-white">{c.overall} / 100</td>
-                <td className="py-3.5">{c.air} / 100</td>
-                <td className="py-3.5">{c.water} / 100</td>
-                <td className="py-3.5">{c.green} / 100</td>
-                <td className="py-3.5">{c.climate} / 100</td>
-                <td className="py-3.5">{c.waste} / 100</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Mini Sparkline Visualization */}
+      <div className="pt-2 flex items-end gap-1 h-6">
+        <div className="w-full bg-emerald-500/20 h-2 rounded-sm" />
+        <div className="w-full bg-emerald-500/40 h-3 rounded-sm" />
+        <div className="w-full bg-emerald-500/60 h-4 rounded-sm" />
+        <div className="w-full bg-emerald-400 h-5 rounded-sm" />
       </div>
     </div>
   );
 }
 
-function TimelineView({ report }: any) {
-  const timelineData = report?.timeline || [
-    { year: "2015", score: 52 },
-    { year: "2020", score: 61 },
-    { year: "2026", score: report?.overallScore || 74 },
-  ];
-
+function TimelinePoint({
+  year,
+  score,
+  height,
+  isHighlighted = false,
+}: {
+  year: string;
+  score: number;
+  height: string;
+  isHighlighted?: boolean;
+}) {
   return (
-    <div className="p-6 rounded-2xl bg-[#0B0F1D] border border-slate-800/80 space-y-4">
-      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-        <Clock className="w-5 h-5 text-emerald-400" /> Environmental Progression Timeline
-      </h3>
-      <div className="grid grid-cols-3 gap-4 pt-4">
-        {timelineData.map((t: any, i: number) => (
-          <div key={i} className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-center space-y-1">
-            <span className="text-xs text-slate-400">{t.year}</span>
-            <p className="text-2xl font-bold text-emerald-400">{t.score} / 100</p>
-          </div>
-        ))}
-      </div>
+    <div className="flex flex-col items-center gap-2">
+      <span className={`text-[11px] font-bold ${isHighlighted ? "text-emerald-400" : "text-amber-400"}`}>
+        {score}
+      </span>
+      <div className={`w-3 ${height} rounded-t-full ${isHighlighted ? "bg-emerald-400" : "bg-amber-400/80"}`} />
+      <span className="text-[10px] text-slate-500 font-mono">{year}</span>
     </div>
   );
 }
 
-function RecommendationsView({ report }: any) {
-  const recs = report?.recommendations || [
-    "Increase urban tree canopy to mitigate heat island effects.",
-    "Upgrade municipal wastewater treatment facilities.",
-    "Implement zero-emission public transport zones in city center.",
-  ];
-
+function RecommendationRow({ number, text }: { number: number; text: string }) {
   return (
-    <div className="p-6 rounded-2xl bg-[#0B0F1D] border border-slate-800/80 space-y-4">
-      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-        <Lightbulb className="w-5 h-5 text-emerald-400" /> Actionable Policy Recommendations
-      </h3>
-      <div className="space-y-3 pt-2">
-        {recs.map((r: string, i: number) => (
-          <div key={i} className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-start gap-3">
-            <AlertCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-slate-300">{r}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SavedView({ savedReports }: any) {
-  if (!savedReports || savedReports.length === 0) {
-    return (
-      <div className="p-8 text-center bg-[#0B0F1D] rounded-2xl border border-slate-800/80 text-slate-400">
-        <p className="text-sm">No saved reports yet. Click &quot;Save Report&quot; on the Dashboard after scanning a city.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6 rounded-2xl bg-[#0B0F1D] border border-slate-800/80 space-y-4">
-      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-        <Bookmark className="w-5 h-5 text-emerald-400" /> Saved Environmental Reports
-      </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {savedReports.map((r: any, i: number) => (
-          <div key={i} className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-            <div className="flex justify-between items-center">
-              <h4 className="font-bold text-white">{r.cityName}</h4>
-              <span className="text-emerald-400 font-bold text-sm">{r.overallScore} / 100</span>
-            </div>
-            <p className="text-xs text-slate-400 line-clamp-2">{r.summary}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function MethodologyView() {
-  return (
-    <div className="p-6 rounded-2xl bg-[#0B0F1D] border border-slate-800/80 space-y-4">
-      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-        <Info className="w-5 h-5 text-emerald-400" /> Methodology & Calibration
-      </h3>
-      <p className="text-xs text-slate-300 leading-relaxed">
-        DNA of a City processes real-time air telemetry along with calibrated municipal baseline data to calculate a weighted Environmental Health Index ($0 - 100$).
-      </p>
+    <div className="p-3 rounded-xl bg-[#070A16] border border-slate-800/60 flex items-start gap-3">
+      <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center flex-shrink-0">
+        {number}
+      </span>
+      <p className="text-xs text-slate-300 leading-relaxed">{text}</p>
     </div>
   );
 }
