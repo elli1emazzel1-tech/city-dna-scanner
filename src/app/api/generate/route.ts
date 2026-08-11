@@ -34,12 +34,12 @@ export async function POST(req: Request) {
     // 2. Air Quality Health Score (0-100 scale; lower AQI = higher health score)
     const airScore = Math.max(5, Math.min(100, Math.round(100 - liveAqi / 3)));
 
-    // 3. City-specific mathematical hashing to calculate unique indicator scores
+    // 3. Mathematical hashing to calculate unique indicator scores
     const hash = cleanCity.toLowerCase().split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const waterScore = 55 + (hash % 36);        // Range ~55-90
-    const natureScore = 40 + ((hash * 3) % 46);  // Range ~40-85
-    const climateScore = 50 + ((hash * 7) % 41); // Range ~50-90
-    const wasteScore = 45 + ((hash * 11) % 46);  // Range ~45-90
+    const waterScore = 55 + (hash % 36);        // ~55-90
+    const natureScore = 40 + ((hash * 3) % 46);  // ~40-85
+    const climateScore = 50 + ((hash * 7) % 41); // ~50-90
+    const wasteScore = 45 + ((hash * 11) % 46);  // ~45-90
 
     // Weighted Overall Score
     const overall = Math.round(
@@ -64,43 +64,32 @@ export async function POST(req: Request) {
         air: {
           score: airScore,
           trend: liveAqi > 100 ? "Unhealthy ↗" : "Stable →",
-          sparkline: [Math.max(0, airScore - 6), Math.max(0, airScore - 3), airScore],
-          indicators: [
-            `AQI Index: ${liveAqi}`,
-            `Dominant: ${dominantPollutant}`,
-            `PM2.5: ${iaqi.pm25?.v ?? "N/A"} µg/m³`,
-            `PM10: ${iaqi.pm10?.v ?? "N/A"} µg/m³`
-          ]
+          sparkline: [Math.max(0, airScore - 6), Math.max(0, airScore - 3), airScore]
         },
         water: {
           score: waterScore,
           trend: waterScore > 70 ? "Improving ↗" : "Stable →",
-          sparkline: [waterScore - 4, waterScore - 1, waterScore],
-          indicators: ["Drinking water safety index", "Wastewater treatment %"]
+          sparkline: [waterScore - 4, waterScore - 1, waterScore]
         },
         green: {
           score: natureScore,
           trend: natureScore < 55 ? "Declining ↘" : "Stable →",
-          sparkline: [natureScore + 3, natureScore + 1, natureScore],
-          indicators: ["Tree canopy density", "Per capita green space"]
+          sparkline: [natureScore + 3, natureScore + 1, natureScore]
         },
         nature: {
           score: natureScore,
           trend: natureScore < 55 ? "Declining ↘" : "Stable →",
-          sparkline: [natureScore + 3, natureScore + 1, natureScore],
-          indicators: ["Tree canopy density", "Per capita green space"]
+          sparkline: [natureScore + 3, natureScore + 1, natureScore]
         },
         climate: {
           score: climateScore,
           trend: "Improving ↗",
-          sparkline: [climateScore - 5, climateScore - 2, climateScore],
-          indicators: ["Heatwave preparedness", "Flood management infrastructure"]
+          sparkline: [climateScore - 5, climateScore - 2, climateScore]
         },
         waste: {
           score: wasteScore,
           trend: "Modernizing →",
-          sparkline: [wasteScore - 3, wasteScore - 1, wasteScore],
-          indicators: ["Source segregation rate", "Recycling efficiency"]
+          sparkline: [wasteScore - 3, wasteScore - 1, wasteScore]
         }
       },
       diagnosis: {
@@ -125,10 +114,17 @@ export async function POST(req: Request) {
         "Expand regional real-time environmental sensor coverage across municipal borders."
       ],
       comparedCities: [
-        { name: cleanCity.toUpperCase(), overall, air: airScore, water: waterScore, green: natureScore, nature: natureScore, climate: climateScore, waste: wasteScore },
-        { name: "TOKYO", overall: 78, air: 82, water: 85, green: 65, nature: 65, climate: 80, waste: 88 },
-        { name: "LONDON", overall: 74, air: 78, water: 80, green: 72, nature: 72, climate: 75, waste: 70 },
-        { name: "NEW YORK", overall: 68, air: 70, water: 75, green: 58, nature: 58, climate: 72, waste: 65 }
+        { name: `📍 ${cleanCity.toUpperCase()} (Your City)`, country: stationName, overall, air: airScore, water: waterScore, green: natureScore, climate: climateScore, waste: wasteScore, isUserCity: true },
+        { name: "🇸🇬 Singapore", country: "Singapore", overall: 92, air: 88, water: 95, green: 90, climate: 85, waste: 96 },
+        { name: "🇯🇵 Tokyo", country: "Japan", overall: 90, air: 89, water: 94, green: 82, climate: 84, waste: 95 },
+        { name: "🇨🇭 Zurich", country: "Switzerland", overall: 89, air: 91, water: 96, green: 88, climate: 82, waste: 93 },
+        { name: "🇩🇰 Copenhagen", country: "Denmark", overall: 88, air: 90, water: 92, green: 86, climate: 80, waste: 91 },
+        { name: "🇦🇹 Vienna", country: "Austria", overall: 87, air: 88, water: 95, green: 87, climate: 79, waste: 90 },
+        { name: "🇫🇮 Helsinki", country: "Finland", overall: 87, air: 93, water: 95, green: 89, climate: 78, waste: 88 },
+        { name: "🇳🇴 Oslo", country: "Norway", overall: 86, air: 92, water: 94, green: 88, climate: 77, waste: 89 },
+        { name: "🇮🇸 Reykjavík", country: "Iceland", overall: 86, air: 96, water: 98, green: 84, climate: 75, waste: 85 },
+        { name: "🇳🇿 Wellington", country: "New Zealand", overall: 85, air: 94, water: 93, green: 87, climate: 76, waste: 84 },
+        { name: "🇩🇪 Munich", country: "Germany", overall: 84, air: 86, water: 91, green: 83, climate: 78, waste: 89 }
       ]
     });
   } catch (err) {
