@@ -85,11 +85,6 @@ export default function Home() {
       { id: 1, title: "Increase tree coverage in dense urban areas, especially in low-income neighborhoods." },
       { id: 2, title: "Improve waste sorting and increase recycling rates through better infrastructure." },
       { id: 3, title: "Expand cooling infrastructure and heat resilience programs." }
-    ],
-    comparedCities: [
-      { name: "Your City", overall: 74, air: 82, water: 88, green: 61, climate: 68, waste: 57 },
-      { name: "London", overall: 78, air: 85, water: 90, green: 72, climate: 65, waste: 60 },
-      { name: "Tokyo", overall: 81, air: 89, water: 92, green: 80, climate: 63, waste: 65 }
     ]
   });
 
@@ -148,12 +143,7 @@ export default function Home() {
             : [
                 { id: 1, title: "Expand urban forest coverage along high-density transport vectors." },
                 { id: 2, title: "Upgrade regional solid waste processing facilities." }
-              ],
-          comparedCities: data.comparedCities || [
-            { name: cityInput.toUpperCase(), overall: data.overallScore || 70, air: data.metrics?.air?.score || 80, water: data.metrics?.water?.score || 85, green: data.metrics?.nature?.score || 65, climate: data.metrics?.climate?.score || 68, waste: data.metrics?.waste?.score || 60 },
-            { name: "London", overall: 78, air: 85, water: 90, green: 72, climate: 65, waste: 60 },
-            { name: "Tokyo", overall: 81, air: 89, water: 92, green: 80, climate: 63, waste: 65 }
-          ]
+              ]
         });
         setActiveTab("dashboard");
       } else {
@@ -204,7 +194,7 @@ export default function Home() {
               AI for a Better Planet
             </p>
             <p className="text-[10px] text-slate-500 leading-normal">
-              Empowering decisions for sustainable tomorrow.
+              Empowering decisions for a sustainable tomorrow.
             </p>
           </div>
         </div>
@@ -244,7 +234,7 @@ export default function Home() {
           </form>
         </div>
 
-        {/* Dynamic Tab Switcher */}
+        {/* Dynamic Views */}
         {activeTab === "dashboard" && (
           <DashboardView
             report={report}
@@ -545,26 +535,66 @@ function ReportView({ report }: any) {
   );
 }
 
-// VIEW 3: COMPARE
+// VIEW 3: COMPARE CITIES (WITH TOP 10 CLEANEST BENCHMARKS)
 function CompareView({ report }: any) {
+  const benchmarkCities = [
+    { name: "🇸🇬 Singapore", country: "Singapore", overall: 92, air: 88, water: 95, green: 90, climate: 85, waste: 96 },
+    { name: "🇯🇵 Tokyo", country: "Japan", overall: 90, air: 89, water: 94, green: 82, climate: 84, waste: 95 },
+    { name: "🇨🇭 Zurich", country: "Switzerland", overall: 89, air: 91, water: 96, green: 88, climate: 82, waste: 93 },
+    { name: "🇩🇰 Copenhagen", country: "Denmark", overall: 88, air: 90, water: 92, green: 86, climate: 80, waste: 91 },
+    { name: "🇦🇹 Vienna", country: "Austria", overall: 87, air: 88, water: 95, green: 87, climate: 79, waste: 90 },
+    { name: "🇫🇮 Helsinki", country: "Finland", overall: 87, air: 93, water: 95, green: 89, climate: 78, waste: 88 },
+    { name: "🇳🇴 Oslo", country: "Norway", overall: 86, air: 92, water: 94, green: 88, climate: 77, waste: 89 },
+    { name: "🇮🇸 Reykjavík", country: "Iceland", overall: 86, air: 96, water: 98, green: 84, climate: 75, waste: 85 },
+    { name: "🇳🇿 Wellington", country: "New Zealand", overall: 85, air: 94, water: 93, green: 87, climate: 76, waste: 84 },
+    { name: "🇩🇪 Munich", country: "Germany", overall: 84, air: 86, water: 91, green: 83, climate: 78, waste: 89 }
+  ];
+
+  const userCity = {
+    name: `📍 ${report.cityName} (Your City)`,
+    country: report.country,
+    overall: report.overallScore,
+    air: report.metrics.air.score,
+    water: report.metrics.water.score,
+    green: report.metrics.green.score,
+    climate: report.metrics.climate.score,
+    waste: report.metrics.waste.score,
+    isUserCity: true
+  };
+
+  const combinedList = [userCity, ...benchmarkCities].sort((a, b) => b.overall - a.overall);
+
   return (
-    <div className="p-6 rounded-2xl bg-[#0C1222] border border-slate-800/80 space-y-5">
+    <div className="p-6 rounded-2xl bg-[#0C1222] border border-slate-800/80 space-y-6">
       <div>
         <h3 className="text-xl font-bold text-white flex items-center gap-2">
           <ArrowLeftRight className="w-5 h-5 text-emerald-400" />
-          Comparative City Benchmark
+          Global Environmental Benchmark Comparison
         </h3>
         <p className="text-xs text-slate-400 mt-1">
-          Comparing metrics across peer municipalities.
+          Comparing <strong>{report.cityName}</strong> against the world's top 10 cleanest benchmark cities.
         </p>
+      </div>
+
+      <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div>
+          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Current Position</span>
+          <p className="text-sm font-bold text-white mt-0.5">
+            {report.cityName} ranks <span className="text-emerald-400">#{combinedList.findIndex(c => c.isUserCity) + 1}</span> out of {combinedList.length} monitored cities.
+          </p>
+        </div>
+        <div className="text-xs text-slate-400">
+          Global Benchmark Average: <strong className="text-slate-200">87.4 / 100</strong>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-slate-800/80 text-slate-400 text-[11px] font-medium">
-              <th className="pb-3 font-semibold">City Name</th>
-              <th className="pb-3 font-semibold">Overall Score</th>
+              <th className="pb-3 font-semibold">Rank</th>
+              <th className="pb-3 font-semibold">City & Country</th>
+              <th className="pb-3 font-semibold">Overall Index</th>
               <th className="pb-3 font-semibold">Air</th>
               <th className="pb-3 font-semibold">Water</th>
               <th className="pb-3 font-semibold">Green Space</th>
@@ -573,15 +603,38 @@ function CompareView({ report }: any) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/40 text-[12px]">
-            {report.comparedCities.map((c: any, i: number) => (
-              <tr key={i} className="hover:bg-slate-900/40 transition">
-                <td className="py-3 font-bold text-emerald-400">{c.name}</td>
-                <td className="py-3 font-bold text-white">{c.overall} / 100</td>
-                <td className="py-3 text-slate-300">{c.air} / 100</td>
-                <td className="py-3 text-slate-300">{c.water} / 100</td>
-                <td className="py-3 text-slate-300">{c.green} / 100</td>
-                <td className="py-3 text-slate-300">{c.climate} / 100</td>
-                <td className="py-3 text-slate-300">{c.waste} / 100</td>
+            {combinedList.map((c, i) => (
+              <tr 
+                key={i} 
+                className={`transition ${
+                  c.isUserCity 
+                    ? "bg-emerald-500/10 border-l-4 border-l-emerald-400 font-bold" 
+                    : "hover:bg-slate-900/40"
+                }`}
+              >
+                <td className="py-3.5 px-2 text-slate-400 font-mono">#{i + 1}</td>
+                <td className={`py-3.5 ${c.isUserCity ? "text-emerald-400 font-bold" : "text-white"}`}>
+                  <div>
+                    <span>{c.name}</span>
+                    <p className="text-[10px] text-slate-500 font-normal">{c.country}</p>
+                  </div>
+                </td>
+                <td className="py-3.5 font-bold text-white">
+                  <div className="flex items-center gap-2">
+                    <span>{c.overall} / 100</span>
+                    <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden hidden sm:block">
+                      <div 
+                        className={`h-full rounded-full ${c.isUserCity ? "bg-emerald-400" : "bg-cyan-400"}`} 
+                        style={{ width: `${c.overall}%` }} 
+                      />
+                    </div>
+                  </div>
+                </td>
+                <td className="py-3.5 text-slate-300">{c.air}</td>
+                <td className="py-3.5 text-slate-300">{c.water}</td>
+                <td className="py-3.5 text-slate-300">{c.green}</td>
+                <td className="py-3.5 text-slate-300">{c.climate}</td>
+                <td className="py-3.5 text-slate-300">{c.waste}</td>
               </tr>
             ))}
           </tbody>
