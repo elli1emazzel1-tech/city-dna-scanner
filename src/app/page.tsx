@@ -2,6 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
+import GlobeGraphic from "@/components/GlobeGraphic";
 import {
   LayoutDashboard,
   FileText,
@@ -105,28 +106,32 @@ export default function Home() {
 
       <div className="flex-1 flex flex-col md:flex-row">
         {/* Sidebar */}
-        <aside className="w-full md:w-64 border-r border-slate-800/60 p-4 bg-[#080C17] space-y-1 flex-shrink-0">
-          {sidebarNav.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full text-left px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-3 transition ${
-                  isActive
-                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                    : "text-slate-400 hover:bg-slate-800/40 hover:text-slate-200"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {item.label}
-              </button>
-            );
-          })}
+        <aside className="w-full md:w-64 border-r border-slate-800/60 p-4 bg-[#080C17] space-y-1 flex-shrink-0 flex flex-col justify-between min-h-[calc(100vh-65px)]">
+          <div className="space-y-1">
+            {sidebarNav.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full text-left px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-3 transition ${
+                    isActive
+                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                      : "text-slate-400 hover:bg-slate-800/40 hover:text-slate-200"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
 
-          <div className="pt-12 px-2">
-            <div className="p-4 rounded-xl bg-[#0B1021] border border-slate-800/80 space-y-1">
+          {/* Earth Globe Component & Card */}
+          <div className="pt-4 px-2">
+            <GlobeGraphic />
+            <div className="p-4 rounded-xl bg-[#0B1021] border border-slate-800/80 space-y-1 mt-2">
               <span className="text-[11px] font-bold text-slate-300 block">AI for a Better Planet</span>
               <p className="text-[10px] text-slate-500 leading-relaxed">Empowering decisions for sustainable tomorrow.</p>
             </div>
@@ -178,7 +183,7 @@ export default function Home() {
   );
 }
 
-// ---------------- DASHBOARD VIEW (RESTORED ORIGINAL DESIGN) ----------------
+// ---------------- DASHBOARD VIEW ----------------
 
 function DashboardView({ report, onSave }: any) {
   const isScanned = !!report;
