@@ -122,7 +122,7 @@ export default function Home() {
 
         {/* Main Content Area */}
         <main className="flex-1 p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
-          {/* Hero Banner with Futuristic City Backdrop */}
+          {/* Hero Banner */}
           <div className="relative rounded-2xl overflow-hidden bg-[#0B0F1A] border border-slate-800/80 p-8 shadow-2xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
             <div
               className="absolute inset-0 opacity-20 bg-cover bg-center pointer-events-none mix-blend-luminosity"
@@ -195,54 +195,59 @@ function ExactDashboardView({ report }: { report: any }) {
 
   return (
     <div className="space-y-6">
-      {/* City Overview & Circular Score */}
+      {/* Unified City Overview & Circular Score Card */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 p-6 rounded-2xl bg-[#0B0F1A] border border-slate-800/80 flex flex-col justify-between space-y-6 shadow-xl">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Analysis Complete
-              </div>
-              <h3 className="text-2xl font-black text-white tracking-tight">Your City</h3>
-              <p className="text-lg font-bold text-emerald-400">{cityName}</p>
+          <div className="flex items-center justify-between">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Analysis Complete
             </div>
-            <div className="text-xs text-slate-400 bg-[#070A14] px-4 py-2 rounded-xl border border-slate-800/80 font-mono">
+            <div className="text-xs text-slate-400 bg-[#070A14] px-3.5 py-1.5 rounded-xl border border-slate-800/80 font-mono">
               Report generated on Aug 13, 2026 • 10:50 PM
             </div>
           </div>
 
-          <div className="flex items-center gap-6 p-5 rounded-2xl bg-[#070A14] border border-slate-800/80">
-            <div className="relative flex items-center justify-center flex-shrink-0">
-              <svg className="w-24 h-24 transform -rotate-90">
-                <circle cx="48" cy="48" r="38" stroke="#1E293B" strokeWidth="7" fill="transparent" />
-                <circle
-                  cx="48"
-                  cy="48"
-                  r="38"
-                  stroke="#10B981"
-                  strokeWidth="7"
-                  strokeDasharray={238}
-                  strokeDashoffset={238 - (238 * overallScore) / 100}
-                  strokeLinecap="round"
-                  fill="transparent"
-                  className="transition-all duration-1000 ease-out"
-                />
-              </svg>
-              <div className="absolute text-center">
-                <span className="text-2xl font-black text-white block">{overallScore}</span>
-                <span className="text-[10px] text-slate-400 font-bold block">/100</span>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            {/* Left side: City Name */}
+            <div className="space-y-1">
+              <span className="text-xs text-slate-400 font-medium block">Your City</span>
+              <h3 className="text-3xl font-black text-white tracking-tight">{cityName}</h3>
             </div>
 
-            <div className="space-y-1">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-                City Health Index
-              </span>
-              <p className="text-base font-bold text-emerald-400">{statusText}</p>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                {cityName} is making progress in several areas, but faces environmental challenges regarding heat and waste systems.
-              </p>
+            {/* Right side: Circular Health Index Score Card */}
+            <div className="flex items-center gap-5 p-4 rounded-2xl bg-[#070A14] border border-slate-800/80">
+              <div className="relative flex items-center justify-center flex-shrink-0">
+                <svg className="w-20 h-20 transform -rotate-90">
+                  <circle cx="40" cy="40" r="32" stroke="#1E293B" strokeWidth="6" fill="transparent" />
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="32"
+                    stroke="#10B981"
+                    strokeWidth="6"
+                    strokeDasharray={201}
+                    strokeDashoffset={201 - (201 * overallScore) / 100}
+                    strokeLinecap="round"
+                    fill="transparent"
+                    className="transition-all duration-1000 ease-out"
+                  />
+                </svg>
+                <div className="absolute text-center">
+                  <span className="text-xl font-black text-white block">{overallScore}</span>
+                  <span className="text-[9px] text-slate-400 font-bold block">/100</span>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                  City Health Index
+                </span>
+                <p className="text-sm font-bold text-emerald-400">{statusText}</p>
+                <p className="text-[11px] text-slate-300 leading-tight">
+                  Mumbai is making progress in several areas, but faces environmental challenges.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -348,7 +353,7 @@ function ExactDashboardView({ report }: { report: any }) {
   );
 }
 
-// ---------------- COMPARE CITIES VIEW (TOP 10 CLEANEST CITIES) ----------------
+// ---------------- COMPARE CITIES VIEW ----------------
 
 function CompareCitiesView({ report }: { report: any }) {
   const customCityName = report?.cityName;
