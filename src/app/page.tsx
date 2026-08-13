@@ -24,6 +24,8 @@ import {
   MapPin,
   CheckCircle2,
   ChevronRight,
+  ShieldCheck,
+  Award,
 } from "lucide-react";
 
 export default function Home() {
@@ -119,7 +121,7 @@ export default function Home() {
           </div>
         </aside>
 
-        {/* Main Content Dashboard */}
+        {/* Main Content Area */}
         <main className="flex-1 p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
           {/* Top Search Banner */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0B0F21] p-6 rounded-2xl border border-slate-800/80">
@@ -152,15 +154,21 @@ export default function Home() {
             </form>
           </div>
 
-          {/* Dashboard View */}
+          {/* Dynamic Tab Rendering */}
           {activeTab === "dashboard" && <ExactDashboardView report={report} />}
+          {activeTab === "report" && <CityReportView report={report} />}
+          {activeTab === "compare" && <CompareCitiesView report={report} />}
+          {activeTab === "timeline" && <TimelineView report={report} />}
+          {activeTab === "recommendations" && <RecommendationsView report={report} />}
+          {activeTab === "saved" && <SavedReportsView />}
+          {activeTab === "about" && <AboutView />}
         </main>
       </div>
     </div>
   );
 }
 
-// ---------------- EXACT DESIGN MATCH DASHBOARD ----------------
+// ---------------- DASHBOARD VIEW ----------------
 
 function ExactDashboardView({ report }: { report: any }) {
   const cityName = report?.cityName || "Your City";
@@ -178,7 +186,6 @@ function ExactDashboardView({ report }: { report: any }) {
     <div className="space-y-6">
       {/* 1. Hero Skyline Banner */}
       <div className="relative rounded-2xl overflow-hidden bg-[#0C1226] border border-slate-800/80 p-8 min-h-[220px] flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        {/* Background Image Overlay */}
         <div
           className="absolute inset-0 opacity-25 bg-cover bg-center pointer-events-none"
           style={{
@@ -188,7 +195,6 @@ function ExactDashboardView({ report }: { report: any }) {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-[#0C1226] via-[#0C1226]/80 to-transparent pointer-events-none" />
 
-        {/* Left Header Content */}
         <div className="relative z-10 space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -202,11 +208,10 @@ function ExactDashboardView({ report }: { report: any }) {
             </p>
           </div>
           <p className="text-[11px] text-slate-400 font-mono pt-1">
-            Report generated on Aug 8, 2026 • 10:30 PM
+            Report generated on Aug 13, 2026 • 10:50 PM
           </p>
         </div>
 
-        {/* Right Gauge & Summary */}
         <div className="relative z-10 flex items-center gap-6 bg-[#080C1B]/80 p-5 rounded-2xl border border-slate-800/80 backdrop-blur-md">
           <div className="relative flex items-center justify-center">
             <svg className="w-24 h-24 transform -rotate-90">
@@ -245,7 +250,6 @@ function ExactDashboardView({ report }: { report: any }) {
       {/* 2. Health Score Overview Cards */}
       <div className="space-y-3">
         <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Health Score Overview</h4>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
           <MetricOverviewCard icon={Wind} label="Air" score={air} status="Improving ↗" trendColor="text-emerald-400" />
           <MetricOverviewCard icon={Droplets} label="Water" score={water} status="Stable →" trendColor="text-emerald-400" />
@@ -255,7 +259,7 @@ function ExactDashboardView({ report }: { report: any }) {
         </div>
       </div>
 
-      {/* 3. Interactive Leaflet City Map */}
+      {/* 3. Interactive City Map */}
       <div className="space-y-3">
         <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Geospatial Telemetry Map</h4>
         <CityMap cityName={cityName} />
@@ -263,7 +267,6 @@ function ExactDashboardView({ report }: { report: any }) {
 
       {/* 4. Three-Column Detailed Analysis Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Column 1: AI Diagnosis */}
         <div className="p-6 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -273,7 +276,6 @@ function ExactDashboardView({ report }: { report: any }) {
             <p className="text-xs text-slate-400 leading-relaxed">
               Your city has shown significant improvement in air and water quality over the past decade. However, increasing climate risks and unequal access to green spaces remain critical challenges.
             </p>
-
             <ul className="space-y-2 pt-2">
               <li className="text-xs text-slate-300 flex items-start gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />
@@ -283,31 +285,16 @@ function ExactDashboardView({ report }: { report: any }) {
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
                 Rising temperatures and heatwave frequency
               </li>
-              <li className="text-xs text-slate-300 flex items-start gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
-                Urban greenery is below recommended levels
-              </li>
-              <li className="text-xs text-slate-300 flex items-start gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
-                Recycling rate is lower than similar cities
-              </li>
             </ul>
           </div>
-
-          <button className="w-full mt-4 py-2.5 px-4 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-xs font-semibold text-slate-200 border border-slate-700/50 flex items-center justify-center gap-2 transition">
-            View Full Analysis <ChevronRight className="w-4 h-4" />
-          </button>
         </div>
 
-        {/* Column 2: City Health Timeline */}
         <div className="p-6 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-emerald-400" />
               <h5 className="text-sm font-bold text-white">City Health Timeline</h5>
             </div>
-
-            {/* Simulated Line Chart Points */}
             <div className="pt-6 pb-2">
               <div className="flex justify-between items-end h-28 px-4 border-b border-slate-800/80 relative">
                 <TimelinePoint year="2010" score={68} height="h-16" />
@@ -316,109 +303,111 @@ function ExactDashboardView({ report }: { report: any }) {
                 <TimelinePoint year="2026" score={72} height="h-20" />
               </div>
             </div>
-
-            <div className="p-3 rounded-xl bg-[#070A16] border border-slate-800/60 space-y-1">
-              <span className="text-[10px] text-slate-500 font-bold block">Status</span>
-              <p className="text-xs font-semibold text-emerald-400">
-                Improving, <span className="text-slate-400">but climate risks increasing</span>
-              </p>
-            </div>
           </div>
         </div>
 
-        {/* Column 3: Top Recommendations */}
         <div className="p-6 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Lightbulb className="w-4 h-4 text-emerald-400" />
               <h5 className="text-sm font-bold text-white">Top Recommendations</h5>
             </div>
-
             <div className="space-y-3 pt-1">
-              <RecommendationRow
-                number={1}
-                text="Increase tree coverage in dense urban areas, especially in low-income neighborhoods."
-              />
-              <RecommendationRow
-                number={2}
-                text="Improve waste sorting and increase recycling rates through better infrastructure."
-              />
-              <RecommendationRow
-                number={3}
-                text="Expand cooling infrastructure and heat resilience programs."
-              />
+              <RecommendationRow number={1} text="Increase tree coverage in dense urban areas." />
+              <RecommendationRow number={2} text="Improve waste sorting and recycling rates." />
             </div>
           </div>
-
-          <button className="w-full mt-4 py-2.5 px-4 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-xs font-semibold text-slate-200 border border-slate-700/50 flex items-center justify-center gap-2 transition">
-            View All Recommendations <ChevronRight className="w-4 h-4" />
-          </button>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* 5. Compare Cities Table */}
-      <div className="p-6 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4">
+// ---------------- COMPARE CITIES VIEW (TOP 10 CLEANEST CITIES) ----------------
+
+function CompareCitiesView({ report }: { report: any }) {
+  const customCityName = report?.cityName;
+  const customScore = report?.overallScore ?? 74;
+
+  const top10CleanestCities = [
+    { rank: 1, name: "Helsinki", country: "Finland", score: 96, air: 98, water: 95, green: 97, climate: 94, waste: 96 },
+    { rank: 2, name: "Copenhagen", country: "Denmark", score: 95, air: 97, water: 96, green: 94, climate: 95, waste: 93 },
+    { rank: 3, name: "Vienna", country: "Austria", score: 93, air: 94, water: 97, green: 95, climate: 90, waste: 91 },
+    { rank: 4, name: "Stockholm", country: "Sweden", score: 92, air: 95, water: 94, green: 92, climate: 91, waste: 88 },
+    { rank: 5, name: "Zurich", country: "Switzerland", score: 91, air: 93, water: 98, green: 89, climate: 89, waste: 87 },
+    { rank: 6, name: "Reykjavik", country: "Iceland", score: 90, air: 99, water: 99, green: 85, climate: 84, waste: 83 },
+    { rank: 7, name: "Oslo", country: "Norway", score: 89, air: 92, water: 93, green: 88, climate: 86, waste: 86 },
+    { rank: 8, name: "Singapore", country: "Singapore", score: 87, air: 85, water: 90, green: 91, climate: 82, waste: 95 },
+    { rank: 9, name: "Tokyo", country: "Japan", score: 85, air: 88, water: 92, green: 80, climate: 83, waste: 82 },
+    { rank: 10, name: "Vienna", country: "Canada (Vancouver)", score: 84, air: 89, water: 91, green: 84, climate: 79, waste: 77 },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-[#0B0F21] p-6 rounded-2xl border border-slate-800/80 space-y-2">
         <div className="flex items-center gap-2">
-          <ArrowLeftRight className="w-4 h-4 text-emerald-400" />
-          <h5 className="text-sm font-bold text-white">Compare Cities</h5>
+          <Award className="w-5 h-5 text-emerald-400" />
+          <h3 className="text-xl font-black text-white">Top 10 Cleanest Cities in the World</h3>
         </div>
+        <p className="text-xs text-slate-400">
+          Ranked globally based on verified environmental benchmarks including air purity, clean water access, urban canopy density, climate adaptability, and waste circularity.
+        </p>
+      </div>
 
+      {customCityName && (
+        <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Your Scanned City</span>
+            <h4 className="text-base font-bold text-white">{customCityName}</h4>
+          </div>
+          <div className="text-right">
+            <span className="text-2xl font-black text-emerald-400">{customScore}</span>
+            <span className="text-xs text-slate-400"> / 100 Overall</span>
+          </div>
+        </div>
+      )}
+
+      <div className="p-6 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-slate-800/80 text-slate-400 text-[11px]">
-                <th className="pb-3 font-semibold">City</th>
-                <th className="pb-3 font-semibold">Overall Score</th>
+                <th className="pb-3 font-semibold">Rank & City</th>
+                <th className="pb-3 font-semibold">Overall Index</th>
                 <th className="pb-3 font-semibold">Air</th>
                 <th className="pb-3 font-semibold">Water</th>
                 <th className="pb-3 font-semibold">Green Space</th>
-                <th className="pb-3 font-semibold">Climate Risk</th>
+                <th className="pb-3 font-semibold">Climate</th>
                 <th className="pb-3 font-semibold">Waste</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/40 text-[12px]">
-              <tr className="text-emerald-400 font-bold bg-emerald-500/5">
-                <td className="py-3.5 pl-2">{cityName}</td>
-                <td className="py-3.5 flex items-center gap-2">
-                  <span>{overallScore} / 100</span>
-                  <div className="w-16 bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-emerald-400 h-full" style={{ width: `${overallScore}%` }} />
-                  </div>
-                </td>
-                <td className="py-3.5">{air} / 100</td>
-                <td className="py-3.5">{water} / 100</td>
-                <td className="py-3.5 text-amber-400">{green} / 100</td>
-                <td className="py-3.5 text-amber-400">{climate} / 100</td>
-                <td className="py-3.5 text-amber-400">{waste} / 100</td>
-              </tr>
-              <tr className="text-slate-300">
-                <td className="py-3.5 pl-2 font-medium">London</td>
-                <td className="py-3.5 flex items-center gap-2">
-                  <span>78 / 100</span>
-                  <div className="w-16 bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-emerald-400 h-full" style={{ width: "78%" }} />
-                  </div>
-                </td>
-                <td className="py-3.5">85 / 100</td>
-                <td className="py-3.5">90 / 100</td>
-                <td className="py-3.5">72 / 100</td>
-                <td className="py-3.5">65 / 100</td>
-                <td className="py-3.5">60 / 100</td>
-              </tr>
-              <tr className="text-slate-300">
-                <td className="py-3.5 pl-2 font-medium">Tokyo</td>
-                <td className="py-3.5 flex items-center gap-2">
-                  <span>81 / 100</span>
-                  <div className="w-16 bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-emerald-400 h-full" style={{ width: "81%" }} />
-                  </div>
-                </td>
-                <td className="py-3.5">89 / 100</td>
-                <td className="py-3.5">92 / 100</td>
-                <td className="py-3.5">80 / 100</td>
-                <td className="py-3.5">63 / 100</td>
-                <td className="py-3.5">65 / 100</td>
-              </tr>
+              {top10CleanestCities.map((c) => (
+                <tr key={c.rank} className="text-slate-300 hover:bg-slate-800/20 transition">
+                  <td className="py-3.5 pl-2 flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-lg bg-slate-800 text-emerald-400 font-bold text-[11px] flex items-center justify-center flex-shrink-0">
+                      #{c.rank}
+                    </span>
+                    <div>
+                      <span className="font-bold text-white block">{c.name}</span>
+                      <span className="text-[10px] text-slate-500">{c.country}</span>
+                    </div>
+                  </td>
+                  <td className="py-3.5 font-bold text-emerald-400">
+                    <div className="flex items-center gap-2">
+                      <span>{c.score} / 100</span>
+                      <div className="w-16 bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-emerald-400 h-full" style={{ width: `${c.score}%` }} />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3.5">{c.air}</td>
+                  <td className="py-3.5">{c.water}</td>
+                  <td className="py-3.5">{c.green}</td>
+                  <td className="py-3.5">{c.climate}</td>
+                  <td className="py-3.5">{c.waste}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -427,21 +416,61 @@ function ExactDashboardView({ report }: { report: any }) {
   );
 }
 
+// ---------------- OTHER PLACEHOLDER VIEWS ----------------
+
+function CityReportView({ report }: { report: any }) {
+  return (
+    <div className="p-8 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4">
+      <h3 className="text-xl font-bold text-white">Comprehensive City Report</h3>
+      <p className="text-xs text-slate-400">Detailed diagnostics and downloadable telemetry insights for {report?.cityName || "your selected city"}.</p>
+    </div>
+  );
+}
+
+function TimelineView({ report }: { report: any }) {
+  return (
+    <div className="p-8 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4">
+      <h3 className="text-xl font-bold text-white">Historical Environmental Timeline</h3>
+      <p className="text-xs text-slate-400">Decadal tracking of ecological metrics from 2010 to present.</p>
+    </div>
+  );
+}
+
+function RecommendationsView({ report }: { report: any }) {
+  return (
+    <div className="p-8 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4">
+      <h3 className="text-xl font-bold text-white">Policy & Infrastructure Action Plan</h3>
+      <p className="text-xs text-slate-400">AI-optimized municipal recommendations for sustainable development.</p>
+    </div>
+  );
+}
+
+function SavedReportsView() {
+  return (
+    <div className="p-8 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4">
+      <h3 className="text-xl font-bold text-white">Saved City Reports</h3>
+      <p className="text-xs text-slate-400">No reports bookmarked yet. Run a city scan and click save to store profiles here.</p>
+    </div>
+  );
+}
+
+function AboutView() {
+  return (
+    <div className="p-8 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4">
+      <div className="flex items-center gap-2">
+        <ShieldCheck className="w-5 h-5 text-emerald-400" />
+        <h3 className="text-xl font-bold text-white">About DNA of a City</h3>
+      </div>
+      <p className="text-xs text-slate-400 leading-relaxed">
+        DNA of a City is an advanced AI environmental health engine designed to evaluate municipal ecosystems, monitor climate vulnerabilities, and support data-driven urban planning.
+      </p>
+    </div>
+  );
+}
+
 // ---------------- SUB-COMPONENTS ----------------
 
-function MetricOverviewCard({
-  icon: Icon,
-  label,
-  score,
-  status,
-  trendColor,
-}: {
-  icon: any;
-  label: string;
-  score: number;
-  status: string;
-  trendColor: string;
-}) {
+function MetricOverviewCard({ icon: Icon, label, score, status, trendColor }: any) {
   return (
     <div className="p-4 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-3">
       <div className="flex justify-between items-center">
@@ -456,8 +485,6 @@ function MetricOverviewCard({
         </p>
         <span className={`text-[11px] font-semibold block mt-1 ${trendColor}`}>{status}</span>
       </div>
-
-      {/* Mini Sparkline Visualization */}
       <div className="pt-2 flex items-end gap-1 h-6">
         <div className="w-full bg-emerald-500/20 h-2 rounded-sm" />
         <div className="w-full bg-emerald-500/40 h-3 rounded-sm" />
@@ -468,17 +495,7 @@ function MetricOverviewCard({
   );
 }
 
-function TimelinePoint({
-  year,
-  score,
-  height,
-  isHighlighted = false,
-}: {
-  year: string;
-  score: number;
-  height: string;
-  isHighlighted?: boolean;
-}) {
+function TimelinePoint({ year, score, height, isHighlighted = false }: any) {
   return (
     <div className="flex flex-col items-center gap-2">
       <span className={`text-[11px] font-bold ${isHighlighted ? "text-emerald-400" : "text-amber-400"}`}>
@@ -490,7 +507,7 @@ function TimelinePoint({
   );
 }
 
-function RecommendationRow({ number, text }: { number: number; text: string }) {
+function RecommendationRow({ number, text }: any) {
   return (
     <div className="p-3 rounded-xl bg-[#070A16] border border-slate-800/60 flex items-start gap-3">
       <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center flex-shrink-0">
