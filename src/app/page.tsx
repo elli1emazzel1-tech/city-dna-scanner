@@ -199,12 +199,12 @@ function ExactDashboardView({ report }: { report: any }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 p-6 rounded-2xl bg-[#0B0F1A] border border-slate-800/80 flex flex-col justify-between space-y-6 shadow-xl">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 Analysis Complete
               </div>
-              <h3 className="text-2xl font-black text-white tracking-tight mt-1">Your City</h3>
+              <h3 className="text-2xl font-black text-white tracking-tight">Your City</h3>
               <p className="text-lg font-bold text-emerald-400">{cityName}</p>
             </div>
             <div className="text-xs text-slate-400 bg-[#070A14] px-4 py-2 rounded-xl border border-slate-800/80 font-mono">
