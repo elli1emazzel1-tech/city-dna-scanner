@@ -1,6 +1,6 @@
-import CityMap from "@/components/CityMap";
 "use client";
 
+import CityMap from "@/components/CityMap";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import GlobeGraphic from "@/components/GlobeGraphic";
@@ -255,7 +255,13 @@ function ExactDashboardView({ report }: { report: any }) {
         </div>
       </div>
 
-      {/* 3. Three-Column Detailed Analysis Grid */}
+      {/* 3. Interactive Leaflet City Map */}
+      <div className="space-y-3">
+        <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Geospatial Telemetry Map</h4>
+        <CityMap cityName={cityName} />
+      </div>
+
+      {/* 4. Three-Column Detailed Analysis Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Column 1: AI Diagnosis */}
         <div className="p-6 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4 flex flex-col justify-between">
@@ -350,7 +356,7 @@ function ExactDashboardView({ report }: { report: any }) {
         </div>
       </div>
 
-      {/* 4. Compare Cities Table */}
+      {/* 5. Compare Cities Table */}
       <div className="p-6 rounded-2xl bg-[#0B0F21] border border-slate-800/80 space-y-4">
         <div className="flex items-center gap-2">
           <ArrowLeftRight className="w-4 h-4 text-emerald-400" />
