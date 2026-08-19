@@ -1,87 +1,94 @@
 "use client";
 
 import React, { useState } from "react";
-import { MapPin, Navigation, Layers, ZoomIn, ZoomOut } from "lucide-react";
+import { MapPin, Compass, Layers, Zap, Eye } from "lucide-react";
 
-export default function CityMap({ cityName }: { cityName: string }) {
-  const [zoom, setZoom] = useState(1);
-  const [activePin, setActivePin] = useState("Central Hub (Live)");
+interface CityMapProps {
+  selectedCity: string;
+  airQualityIndex: number;
+}
 
-  const pins = [
-    { name: "Central Hub (Live)", x: "50%", y: "45%", aq2: "47 AQI", status: "Moderate" },
-    { name: "Industrial Zone", x: "72%", y: "30%", aq2: "82 AQI", status: "Heavy" },
-    { name: "Coastal Sector", x: "28%", y: "65%", aq2: "32 AQI", status: "Good" },
-    { name: "Green Canopy Park", x: "60%", y: "70%", aq2: "24 AQI", status: "Optimal" },
-  ];
+export default function CityMap({ selectedCity, airQualityIndex }: CityMapProps) {
+  const [activeLayer, setActiveLayer] = useState<"thermal" | "hydrology" | "carbon">("thermal");
+  const [isRadarActive, setIsRadarActive] = useState<boolean>(true);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-emerald-400" /> Geospatial Telemetry Map • {cityName}
-        </h4>
-        <div className="flex items-center gap-1.5 bg-[#0B0F21] border border-slate-800/80 rounded-xl p-1">
-          <button 
-            onClick={() => setZoom(prev => Math.min(prev + 0.2, 1.5))} 
-            className="p-1.5 hover:bg-slate-800 text-slate-300 rounded-lg transition"
-            title="Zoom In"
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
-          </button>
-          <button 
-            onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.8))} 
-            className="p-1.5 hover:bg-slate-800 text-slate-300 rounded-lg transition"
-            title="Zoom Out"
-          >
-            <ZoomOut className="w-3.5 h-3.5" />
-          </button>
+    <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl shadow-xl flex flex-col justify-between">
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <MapPin className="w-4 h-4 text-[#22FFAA]" />
+            <h3 className="text-white font-bold text-sm">Geospatial Telemetry Grid & Sector Radar</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${isRadarActive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`}></span>
+            <span className="text-xs text-slate-400 font-mono">Live Sector Map</span>
+          </div>
+        </div>
+        
+        {/* Simulated Telemetry Map Box */}
+        <div className="w-full h-72 rounded-2xl bg-[#131B2E] border border-slate-800/80 relative flex items-center justify-center overflow-hidden shadow-inner">
+          <div className="absolute inset-0 bg-[radial-gradient(#22FFAA_1px,transparent_1px)] [background-size:20px_20px] opacity-15"></div>
+          
+          {/* Radar Scanning Ring Effect */}
+          {isRadarActive && (
+            <div className="absolute w-48 h-48 rounded-full border border-[#22FFAA]/20 animate-ping pointer-events-none"></div>
+          )}
+          
+          {/* Map Hotspots based on active layer */}
+          {activeLayer === "thermal" && (
+            <div className="absolute top-12 left-20 px-3 py-1.5 rounded-xl bg-[#0B0F1A]/90 border border-[#22FFAA]/30 text-[10px] font-mono text-[#22FFAA] shadow-lg flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#22FFAA] animate-pulse"></span>
+              {selectedCity} Thermal Hub: {airQualityIndex} AQI
+            </div>
+          )}
+
+          {activeLayer === "hydrology" && (
+            <div className="absolute bottom-16 left-24 px-3 py-1.5 rounded-xl bg-[#0B0F1A]/90 border border-cyan-500/30 text-[10px] font-mono text-cyan-400 shadow-lg flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+              Water Basin & Drainage: Optimal
+            </div>
+          )}
+
+          {activeLayer === "carbon" && (
+            <div className="absolute top-16 right-20 px-3 py-1.5 rounded-xl bg-[#0B0F1A]/90 border border-amber-500/30 text-[10px] font-mono text-amber-400 shadow-lg flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              Carbon Flux Emission Node: Active
+            </div>
+          )}
+
+          <div className="text-center z-10 space-y-2">
+            <div className="w-14 h-14 rounded-2xl bg-[#22FFAA]/10 border border-[#22FFAA]/30 flex items-center justify-center mx-auto text-[#22FFAA] shadow-[0_0_20px_rgba(34,255,170,0.2)]">
+              <Compass className="w-7 h-7 animate-spin" style={{ animationDuration: '15s' }} />
+            </div>
+            <p className="text-xs text-slate-200 font-semibold">Autonomous Sensor Grid Synchronized</p>
+            <span className="text-[10px] text-slate-400 font-mono block">Active Layer: {activeLayer.toUpperCase()} · 1,420 Active Nodes</span>
+          </div>
         </div>
       </div>
 
-      <div className="relative w-full h-80 rounded-2xl overflow-hidden bg-[#070A16] border border-slate-800/80 flex items-center justify-center">
-        {/* Simulated Map Grid Background */}
-        <div 
-          className="absolute inset-0 opacity-20 bg-[radial-gradient(#10B981_1px,transparent_1px)] [background-size:16px_16px] transition-transform duration-300"
-          style={{ transform: `scale(${zoom})` }}
-        />
-
-        {/* Abstract Map Roads / Geographic Lines */}
-        <svg className="absolute inset-0 w-full h-full opacity-30 pointer-events-none" style={{ transform: `scale(${zoom})` }}>
-          <path d="M 0 100 Q 200 50 400 180 T 800 120" stroke="#10B981" strokeWidth="2" fill="none" />
-          <path d="M 100 0 Q 250 200 300 320 T 700 300" stroke="#3B82F6" strokeWidth="1.5" fill="none" />
-          <circle cx="50%" cy="45%" r="120" stroke="#10B981" strokeWidth="1" strokeDasharray="4 4" fill="none" />
-        </svg>
-
-        {/* Interactive Pins */}
-        <div className="absolute inset-0" style={{ transform: `scale(${zoom})`, transition: 'transform 0.3s ease' }}>
-          {pins.map((pin) => {
-            const isSelected = activePin === pin.name;
-            return (
-              <div
-                key={pin.name}
-                className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
-                style={{ left: pin.x, top: pin.y }}
-                onClick={() => setActivePin(pin.name)}
-              >
-                <div className={`relative flex items-center justify-center p-2 rounded-full transition ${isSelected ? 'bg-emerald-500/30 ring-2 ring-emerald-400' : 'bg-slate-800/80 hover:bg-slate-700'}`}>
-                  <Navigation className={`w-4 h-4 ${isSelected ? 'text-emerald-400 animate-pulse' : 'text-slate-400'}`} />
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                </div>
-
-                {/* Tooltip Card */}
-                <div className="absolute left-6 top-0 bg-[#0B0F21] border border-slate-700/80 shadow-2xl rounded-xl p-2.5 text-xs whitespace-nowrap z-30 opacity-90 group-hover:opacity-100">
-                  <p className="font-bold text-white">{pin.name}</p>
-                  <p className="text-[10px] text-emerald-400 font-mono">Air Index: {pin.aq2} • {pin.status}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Map Overlay Badge */}
-        <div className="absolute bottom-4 left-4 bg-[#0B0F21]/90 backdrop-blur-md border border-slate-800 px-3.5 py-2 rounded-xl text-[11px] text-slate-300 flex items-center gap-2">
-          <Layers className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Active Station: <strong className="text-white">{activePin}</strong></span>
+      {/* Map Interactive Controls Footer */}
+      <div className="mt-4 flex flex-col sm:flex-row items-center justify-between pt-3 border-t border-slate-800/60 text-xs gap-3">
+        <span className="font-mono text-slate-400">Elevation: 12m ASL</span>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setActiveLayer("thermal")}
+            className={`px-2.5 py-1 rounded-lg font-mono text-[10px] transition ${activeLayer === 'thermal' ? 'bg-[#22FFAA]/20 text-[#22FFAA] border border-[#22FFAA]/40' : 'text-slate-400 hover:text-white bg-slate-900'}`}
+          >
+            Thermal
+          </button>
+          <button 
+            onClick={() => setActiveLayer("hydrology")}
+            className={`px-2.5 py-1 rounded-lg font-mono text-[10px] transition ${activeLayer === 'hydrology' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40' : 'text-slate-400 hover:text-white bg-slate-900'}`}
+          >
+            Hydrology
+          </button>
+          <button 
+            onClick={() => setActiveLayer("carbon")}
+            className={`px-2.5 py-1 rounded-lg font-mono text-[10px] transition ${activeLayer === 'carbon' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'text-slate-400 hover:text-white bg-slate-900'}`}
+          >
+            Carbon Flux
+          </button>
         </div>
       </div>
     </div>
