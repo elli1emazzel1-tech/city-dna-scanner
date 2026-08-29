@@ -1,773 +1,834 @@
-"use client";
-import CityMap from "@/components/CityMap";
-import GlobeGraphic from "@/components/GlobeGraphic"; // If you're using this elsewhere too
-import React, { useState } from "react";
+'use client';
+
+import React, { useState } from 'react';
 import { 
-  Activity, 
-  MapPin, 
-  Search, 
-  Wind, 
   Droplets, 
   Sun, 
+  AlertCircle, 
+  MapPin, 
   ShieldAlert, 
-  TrendingUp, 
   Globe, 
-  Layers, 
-  FileText, 
-  Settings, 
-  AlertTriangle,
+  TrendingUp,
   CheckCircle2,
-  AlertCircle,
-  Database,
-  Download,
-  Share2,
-  Bell,
-  Cpu,
-  BarChart3,
-  Sliders,
-  Zap,
-  Target,
-  RefreshCw,
-  Compass,
-  Layers3,
-  Flame
-} from "lucide-react";
+  Clock,
+  Navigation,
+  Search,
+  Activity,
+  Wind,
+  Trees,
+  Volume2,
+  Flame,
+  LayoutDashboard,
+  FileText,
+  GitCompare,
+  BookmarkCheck,
+  Info
+} from 'lucide-react';
 
-export default function Dashboard() {
-  // Navigation & View State
-  const [activeTab, setActiveTab] = useState("Dashboard");
-  const [selectedCity, setSelectedCity] = useState("New York, USA");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isScanning, setIsScanning] = useState(false);
+interface CityMapProps {
+  selectedCity: string;
+  airQualityIndex: number;
+}
 
-  // Feature 1: Urban Heat Island (UHI) Simulator States
-  const [treeCoverage, setTreeCoverage] = useState<number>(25);
-  const [whiteRoof, setWhiteRoof] = useState<number>(30);
-  const [industrialCap, setIndustrialCap] = useState<number>(15);
-  const [pavementReflectivity, setPavementReflectivity] = useState<number>(20);
+const CityMap: React.FC<CityMapProps> = ({ selectedCity, airQualityIndex }) => (
+  <div className="w-full h-64 rounded-2xl bg-[#131B2E] border border-slate-800 flex items-center justify-center relative overflow-hidden">
+    <div className="absolute inset-0 bg-[radial-gradient(#22FFAA_1px,transparent_1px)] [background-size:16px_16px] opacity-10"></div>
+    <div className="text-center z-10">
+      <span className="text-xs font-mono text-[#22FFAA] block mb-1">Active Sector: {selectedCity || "Awaiting City Input"}</span>
+      <p className="text-sm font-bold text-white">Telemetry AQI Index: {selectedCity ? airQualityIndex : '--'}</p>
+    </div>
+  </div>
+);
 
-  // Feature 2: Citizen Crowdsourcing & Hazard Reporting States
-  const [reports, setReports] = useState([
-    { id: 1, type: "Illegal Dumping", location: "District 4 Industrial Zone", severity: "High", status: "Pending", date: "Aug 18, 2026" },
-    { id: 2, type: "Clogged Drainage", location: "Sector 7 Market", severity: "Medium", status: "In Progress", date: "Aug 18, 2026" },
-    { id: 3, type: "Toxic Smoke Emissions", location: "Harbor Port 3", severity: "Critical", status: "Dispatched", date: "Aug 17, 2026" }
-  ]);
-  const [newHazard, setNewHazard] = useState({ 
-    type: "Illegal Dumping", 
-    location: "", 
-    severity: "High", 
-    description: "" 
-  });
+interface HazardReport {
+  id: number;
+  type: string;
+  location: string;
+  severity: 'Low' | 'Medium' | 'High' | 'Critical';
+  status: 'Pending' | 'In Progress' | 'Dispatched' | 'Resolved';
+  date: string;
+  coords: { x: string; y: string };
+}
 
-  // Feature 3: Flash Flood & Stormwater Risk Predictor States
-  const [rainfall, setRainfall] = useState<number>(12);
-  const [drainageCapacity, setDrainageCapacity] = useState<number>(70);
-  const [tideLevel, setTideLevel] = useState<number>(2.4);
+interface Recommendation {
+  id: number;
+  category: string;
+  title: string;
+  impact: string;
+  status: string;
+}
 
-  // Additional Environmental Metric States
+interface CleanCity {
+  rank: number;
+  city: string;
+  country: string;
+  score: number;
+  change: string;
+}
+
+interface TimelineItem {
+  year: string;
+  score: string;
+  height: string;
+  isHighlighted?: boolean;
+  isForecast?: boolean;
+}
+
+export default function UrbanDashboard() {
+  const [currentTab, setCurrentTab] = useState<string>('dashboard');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [countryCode, setCountryCode] = useState<string>('');
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+
+  // Vector Metrics States
   const [airQualityIndex, setAirQualityIndex] = useState<number>(47);
   const [waterPurityScore, setWaterPurityScore] = useState<number>(88);
   const [greenCanopyIndex, setGreenCanopyIndex] = useState<number>(34);
   const [carbonEmissionRate, setCarbonEmissionRate] = useState<number>(412);
   const [noisePollutionLevel, setNoisePollutionLevel] = useState<number>(62);
 
-  // AI Recommendation List State
-  const [recommendations, setRecommendations] = useState([
-    { id: 1, title: "Expand Urban Forest Canopy", category: "Ecology", impact: "+14% Air Purity", status: "Recommended" },
-    { id: 2, title: "Mandatory Cool-Roof Retrofits", category: "Climate", impact: "-2.2°C UHI Drop", status: "High Priority" },
-    { id: 3, title: "Stormwater Retention Basins", category: "Infrastructure", impact: "Risk Reduction", status: "Active" },
-    { id: 4, title: "Industrial Emission Cap Enforcement", category: "Policy", impact: "-30% Particulates", status: "Pending Review" }
+  // UHI Simulator States
+  const [treeCoverage, setTreeCoverage] = useState<number>(25);
+  const [whiteRoof, setWhiteRoof] = useState<number>(30);
+  const [industrialCap, setIndustrialCap] = useState<number>(15);
+
+  // Hazard Reporting State
+  const [newHazardType, setNewHazardType] = useState<string>('Illegal Dumping');
+  const [newHazardLocation, setNewHazardLocation] = useState<string>('');
+  const [newHazardSeverity, setNewHazardSeverity] = useState<'Low' | 'Medium' | 'High' | 'Critical'>('High');
+  const [activeFilter, setActiveFilter] = useState<string>('All');
+  
+  const [reports, setReports] = useState<HazardReport[]>([
+    { id: 1, type: 'Illegal Dumping', location: 'District 4 Industrial Zone', severity: 'High', status: 'Pending', date: 'Aug 18, 2026', coords: { x: '45%', y: '60%' } },
+    { id: 2, type: 'Clogged Drainage', location: 'Sector 7 Market', severity: 'Medium', status: 'In Progress', date: 'Aug 18, 2026', coords: { x: '72%', y: '30%' } },
   ]);
 
-  // Historical Timeline Data State
-  const timelineData = [
-    { year: "2018", score: 52, height: "52%", isHighlighted: false, isForecast: false },
-    { year: "2020", score: 58, height: "58%", isHighlighted: false, isForecast: false },
-    { year: "2022", score: 64, height: "64%", isHighlighted: false, isForecast: false },
-    { year: "2024", score: 71, height: "71%", isHighlighted: true, isForecast: false },
-    { year: "2026 (Current)", score: 78, height: "78%", isHighlighted: true, isForecast: false },
-    { year: "2028 (Est.)", score: 83, height: "83%", isHighlighted: false, isForecast: true },
-    { year: "2030 (Est.)", score: 91, height: "91%", isHighlighted: false, isForecast: true }
-  ];
+  // Flood Predictor States
+  const [rainfall, setRainfall] = useState<number>(15);
+  const [drainageCapacity, setDrainageCapacity] = useState<number>(85);
 
-  // Top 10 Cleanest Cities Data
-  const cleanestCities = [
-    { rank: 1, city: "Copenhagen", country: "Denmark", score: 96.4, change: "+1.2%" },
-    { rank: 2, city: "Zurich", country: "Switzerland", score: 95.8, change: "+0.8%" },
-    { rank: 3, city: "Stockholm", country: "Sweden", score: 94.2, change: "+1.5%" },
-    { rank: 4, city: "Vienna", country: "Austria", score: 93.1, change: "+0.4%" },
-    { rank: 5, city: "Singapore", country: "Singapore", score: 92.5, change: "+2.1%" },
-    { rank: 6, city: "Helsinki", country: "Finland", score: 91.9, change: "+0.7%" },
-    { rank: 7, city: "Oslo", country: "Norway", score: 91.3, change: "+1.1%" },
-    { rank: 8, city: "Tokyo", country: "Japan", score: 89.8, change: "+0.5%" },
-    { rank: 9, city: "Vancouver", country: "Canada", score: 88.4, change: "-0.2%" },
-    { rank: 10, city: "Amsterdam", country: "Netherlands", score: 87.9, change: "+1.4%" }
-  ];
+  const [recommendations] = useState<Recommendation[]>([
+    { id: 1, category: 'Energy', title: 'Expand smart-grid rooftop solar incentives in primary sector', impact: '+4.2% Efficiency', status: 'Ready' },
+    { id: 2, category: 'Water', title: 'Deploy bio-filtration buffers near stormwater runoff canals', impact: '-12% Contaminants', status: 'In Progress' }
+  ]);
 
-  // Handler for scanning city simulation
-  const handleCityScan = () => {
-    if (!searchQuery) return;
+  const [cleanestCities] = useState<CleanCity[]>([
+    { rank: 1, city: 'Helsinki', country: 'Finland', score: 98.4, change: '+1.2%' },
+    { rank: 2, city: 'Zürich', country: 'Switzerland', score: 97.9, change: '+0.8%' },
+    { rank: 3, city: 'Reykjavík', country: 'Iceland', score: 96.5, change: '+1.5%' },
+    { rank: 4, city: 'Vienna', country: 'Austria', score: 95.8, change: '+0.4%' },
+    { rank: 5, city: 'Singapore', country: 'Singapore', score: 94.7, change: '+2.1%' }
+  ]);
+
+  const [timelineData] = useState<TimelineItem[]>([
+    { year: '2018', score: '62.0', height: '60%' },
+    { year: '2020', score: '68.4', height: '68%' },
+    { year: '2022', score: '75.1', height: '75%' },
+    { year: '2024', score: '82.9', height: '83%', isHighlighted: true },
+    { year: '2026', score: '89.2', height: '89%' },
+    { year: '2028', score: '93.5', height: '93%', isForecast: true },
+    { year: '2030', score: '97.0', height: '97%', isForecast: true }
+  ]);
+
+  const handleCityScan = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
     setIsScanning(true);
+    const query = searchQuery.trim();
+    const lowerQuery = query.toLowerCase();
+
+    if (lowerQuery.includes('mumbai') || lowerQuery.includes('delhi') || lowerQuery.includes('india')) {
+      setCountryCode('IN');
+    } else if (lowerQuery.includes('new york') || lowerQuery.includes('chicago') || lowerQuery.includes('usa')) {
+      setCountryCode('US');
+    } else if (lowerQuery.includes('london') || lowerQuery.includes('uk')) {
+      setCountryCode('GB');
+    } else if (lowerQuery.includes('tokyo') || lowerQuery.includes('japan')) {
+      setCountryCode('JP');
+    } else {
+      setCountryCode('INT');
+    }
+
     setTimeout(() => {
-      setSelectedCity(searchQuery);
+      setSelectedCity(query);
       setAirQualityIndex(Math.floor(Math.random() * 60) + 25);
       setWaterPurityScore(Math.floor(Math.random() * 25) + 75);
       setGreenCanopyIndex(Math.floor(Math.random() * 40) + 20);
       setCarbonEmissionRate(Math.floor(Math.random() * 200) + 300);
       setIsScanning(false);
-      setSearchQuery("");
+      setSearchQuery('');
     }, 1200);
   };
 
+  const handleAddHazard = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newHazardLocation.trim()) return;
+
+    const randomX = `${Math.floor(Math.random() * 75 + 15)}%`;
+    const randomY = `${Math.floor(Math.random() * 60 + 20)}%`;
+
+    const newReport: HazardReport = {
+      id: Date.now(),
+      type: newHazardType,
+      location: newHazardLocation,
+      severity: newHazardSeverity,
+      status: 'Pending',
+      date: 'Aug 29, 2026',
+      coords: { x: randomX, y: randomY }
+    };
+
+    setReports([newReport, ...reports]);
+    setNewHazardLocation('');
+  };
+
+  const filteredReports = activeFilter === 'All' 
+    ? reports 
+    : reports.filter(r => r.status === activeFilter || r.severity === activeFilter);
+
   return (
-    <div className="min-h-screen bg-[#0B0F1A] text-slate-100 flex font-sans selection:bg-[#22FFAA]/30 selection:text-[#22FFAA]">
+    <div className="min-h-screen bg-[#060911] text-slate-100 flex font-sans">
       
       {/* SIDEBAR NAVIGATION */}
-      <aside className="w-64 border-r border-slate-800/80 bg-[#0B0F1A]/95 backdrop-blur-2xl hidden md:flex flex-col justify-between p-5 sticky top-0 h-screen z-40">
-        <div>
-          {/* Logo Area */}
-          <div className="flex items-center gap-3 mb-8 px-2">
-            <div className="w-10 h-10 rounded-2xl bg-[#22FFAA]/10 border border-[#22FFAA]/30 flex items-center justify-center text-[#22FFAA] shadow-[0_0_20px_rgba(34,255,170,0.25)]">
-              <Globe className="w-5 h-5 animate-spin" style={{ animationDuration: '20s' }} />
+      <aside className="w-64 border-r border-slate-800/80 bg-[#0B0F1A]/90 p-6 hidden lg:flex flex-col justify-between shrink-0">
+        <div className="space-y-8">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-7 h-7 rounded-xl bg-[#22FFAA]/20 border border-[#22FFAA]/40 flex items-center justify-center text-[#22FFAA]">
+                <Globe className="w-4 h-4" />
+              </div>
+              <span className="font-extrabold text-white tracking-wider text-sm">DNA · City</span>
             </div>
-            <div>
-              <h1 className="font-bold tracking-tight text-white flex items-center gap-1 text-base">
-                DNA<span className="text-[#22FFAA]">·</span>City
-              </h1>
-              <span className="text-[10px] text-slate-400 font-mono tracking-wider uppercase">Urban Intelligence Engine</span>
-            </div>
+            <span className="text-[10px] font-mono text-[#22FFAA] uppercase tracking-wider block pl-9">Urban Intelligence Engine</span>
           </div>
 
-          {/* Navigation Menu */}
-          <nav className="space-y-1.5">
-            {[
-              { name: "Dashboard", icon: Activity },
-              { name: "City Report", icon: FileText },
-              { name: "Compare Cities", icon: Layers },
-              { name: "Timeline", icon: TrendingUp },
-              { name: "Recommendations", icon: ShieldAlert },
-              { name: "Saved Reports", icon: Globe },
-              { name: "About", icon: Settings },
-            ].map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.name;
-              return (
-                <button
-                  key={item.name}
-                  onClick={() => setActiveTab(item.name)}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all duration-200 ${
-                    isActive 
-                      ? 'bg-[#22FFAA]/10 text-[#22FFAA] border border-[#22FFAA]/25 shadow-[0_0_20px_rgba(34,255,170,0.12)]' 
-                      : 'text-slate-400 hover:text-white hover:bg-slate-900/60 border border-transparent'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.name}
-                </button>
-              );
-            })}
+          <nav className="space-y-1">
+            <button 
+              onClick={() => setCurrentTab('dashboard')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition ${currentTab === 'dashboard' ? 'bg-[#22FFAA]/10 text-[#22FFAA] border border-[#22FFAA]/20' : 'text-slate-400 hover:text-white hover:bg-slate-900/50'}`}
+            >
+              <LayoutDashboard className="w-4 h-4" /> Dashboard
+            </button>
+            <button 
+              onClick={() => setCurrentTab('report')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition ${currentTab === 'report' ? 'bg-[#22FFAA]/10 text-[#22FFAA] border border-[#22FFAA]/20' : 'text-slate-400 hover:text-white hover:bg-slate-900/50'}`}
+            >
+              <FileText className="w-4 h-4" /> City Report
+            </button>
+            <button 
+              onClick={() => setCurrentTab('compare')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition ${currentTab === 'compare' ? 'bg-[#22FFAA]/10 text-[#22FFAA] border border-[#22FFAA]/20' : 'text-slate-400 hover:text-white hover:bg-slate-900/50'}`}
+            >
+              <GitCompare className="w-4 h-4" /> Compare Cities
+            </button>
+            <button 
+              onClick={() => setCurrentTab('timeline')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition ${currentTab === 'timeline' ? 'bg-[#22FFAA]/10 text-[#22FFAA] border border-[#22FFAA]/20' : 'text-slate-400 hover:text-white hover:bg-slate-900/50'}`}
+            >
+              <TrendingUp className="w-4 h-4" /> Timeline
+            </button>
+            <button 
+              onClick={() => setCurrentTab('recommendations')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition ${currentTab === 'recommendations' ? 'bg-[#22FFAA]/10 text-[#22FFAA] border border-[#22FFAA]/20' : 'text-slate-400 hover:text-white hover:bg-slate-900/50'}`}
+            >
+              <ShieldAlert className="w-4 h-4" /> Recommendations
+            </button>
+            <button 
+              onClick={() => setCurrentTab('saved')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition ${currentTab === 'saved' ? 'bg-[#22FFAA]/10 text-[#22FFAA] border border-[#22FFAA]/20' : 'text-slate-400 hover:text-white hover:bg-slate-900/50'}`}
+            >
+              <BookmarkCheck className="w-4 h-4" /> Saved Reports
+            </button>
+            <button 
+              onClick={() => setCurrentTab('about')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition ${currentTab === 'about' ? 'bg-[#22FFAA]/10 text-[#22FFAA] border border-[#22FFAA]/20' : 'text-slate-400 hover:text-white hover:bg-slate-900/50'}`}
+            >
+              <Info className="w-4 h-4" /> About
+            </button>
           </nav>
         </div>
 
-        {/* Sidebar System Status Footer */}
-        <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900/80 to-[#131B2E]/60 border border-slate-800/80 text-[11px] text-slate-400 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-emerald-400 font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-              Neural Telemetry
-            </span>
-            <span className="font-mono text-[10px] text-slate-500">v4.8.2</span>
+        <div className="p-3.5 rounded-2xl bg-[#131B2E] border border-slate-800 text-xs space-y-2">
+          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+            <span>Neural Telemetry</span>
+            <span className="text-[#22FFAA]">v4.6.2</span>
           </div>
-          <div className="w-full bg-slate-800/80 h-1 rounded-full overflow-hidden">
-            <div className="bg-[#22FFAA] h-full w-[94%]"></div>
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-slate-300">Nodes Active</span>
+            <span className="font-mono text-white">2,410</span>
           </div>
-          <div className="text-[10px] text-slate-400 flex justify-between font-mono">
-            <span>Nodes: 2,410 Active</span>
-            <span className="text-[#22FFAA]">99.9% Up</span>
+          <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+            <div className="bg-[#22FFAA] h-full w-[99.9%]"></div>
           </div>
         </div>
       </aside>
 
-      {/* MAIN LAYOUT WRAPPER */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto">
         
-        {/* TOP NAVBAR & HEADER BANNER */}
-        <header className="p-6 md:p-8 pb-4 space-y-6">
-          
-          {/* Top Info Bar */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#0B0F1A]/90 border border-slate-800/80 p-4 rounded-2xl backdrop-blur-xl">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]"></div>
-              <div>
-                <h4 className="text-xs font-semibold text-white flex items-center gap-2">
-                  Active Region: <span className="text-[#22FFAA] font-mono">{selectedCity}</span>
-                </h4>
-                <p className="text-[11px] text-slate-400">All biological & geospatial sensors synchronized successfully.</p>
-              </div>
-            </div>
+        {/* TOP STATUS HEADER */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs font-mono border-b border-slate-800/80 pb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-[#22FFAA]">Active Region:</span>
+            <span className="text-white font-bold">{selectedCity ? `${selectedCity}${countryCode ? `, ${countryCode}` : ''}` : 'None Selected'}</span>
+          </div>
+          <div className="text-slate-400">
+            {selectedCity ? 'All biological & geospatial sensors synchronized successfully' : 'Awaiting initialization via city scan'}
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-slate-400">Timestamp: Aug 29, 2026 - 23:05 UTC</span>
+            <button 
+              onClick={() => alert("Full audit report exported successfully.")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#22FFAA]/10 border border-[#22FFAA]/30 text-[#22FFAA] hover:bg-[#22FFAA]/20 transition"
+            >
+              Export Audit
+            </button>
+          </div>
+        </div>
 
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-              <span className="text-xs font-mono text-slate-400 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-xl">
-                Timestamp: Aug 18, 2026 · 19:42 UTC
-              </span>
-              <button 
-                onClick={() => alert("Telemetry export initiated. CSV package ready.")}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#22FFAA]/10 border border-[#22FFAA]/30 text-[#22FFAA] hover:bg-[#22FFAA]/20 text-xs font-semibold transition"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Export Audit
-              </button>
-            </div>
+        {/* HERO SEARCH SECTION */}
+        <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl shadow-xl space-y-4">
+          <div className="space-y-1">
+            <span className="text-[10px] font-mono text-[#22FFAA] uppercase tracking-wider block">Intelligent Insights. Healthier Cities.</span>
+            <h1 className="text-2xl font-extrabold text-white tracking-tight">Decode Cities with AI Intelligence</h1>
+            <p className="text-xs text-slate-400">Analyze environmental health, simulate urban climate interventions, report civic hazards, and predict extreme weather patterns in real-time.</p>
           </div>
 
-          {/* Hero Banner */}
-          <div className="relative rounded-3xl bg-gradient-to-r from-[#131B2E] via-[#0D1526] to-[#0B0F1A] border border-slate-800/80 p-6 md:p-10 overflow-hidden shadow-2xl">
-            <div className="absolute right-0 top-0 w-96 h-96 bg-[#22FFAA]/5 rounded-full blur-3xl pointer-events-none"></div>
-            <div className="absolute left-1/3 bottom-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <div className="relative z-10 max-w-3xl">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-[#22FFAA] bg-[#22FFAA]/10 border border-[#22FFAA]/20 px-3.5 py-1 rounded-full mb-3 inline-block shadow-sm">
-                Intelligent Insights. Healthier Cities.
-              </span>
-              <h2 className="text-2xl md:text-4xl font-extrabold tracking-tight text-white mb-3">
-                Decode Cities with <span className="text-[#22FFAA]">AI Intelligence</span>
+          <form onSubmit={handleCityScan} className="flex flex-col sm:flex-row gap-3 pt-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Search any city, e.g., Tokyo, London, Singapore..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-[#131B2E] border border-slate-800 text-xs text-white pl-10 pr-4 py-3 rounded-xl outline-none placeholder:text-slate-500 focus:border-[#22FFAA] transition"
+              />
+            </div>
+            <button 
+              type="submit"
+              disabled={isScanning}
+              className="px-6 py-3 rounded-xl bg-[#22FFAA] text-slate-950 font-bold text-xs hover:bg-[#1edb95] transition flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isScanning ? 'Scanning...' : 'Scan City'}
+            </button>
+          </form>
+        </div>
+
+        {/* 5 CORE ECOLOGICAL VECTORS GRID */}
+        {selectedCity ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 font-mono">
+                <Activity className="w-4 h-4 text-[#22FFAA]" />
+                5 Core Ecological Vectors · {selectedCity.toUpperCase()}
               </h2>
-              <p className="text-xs md:text-sm text-slate-300 mb-6 leading-relaxed">
-                Analyze environmental health, simulate urban climate interventions, report civic hazards, and predict extreme weather patterns in real-time.
-              </p>
-
-              {/* Search Bar & City Scanner */}
-              <div className="flex flex-col sm:flex-row items-center gap-2.5 bg-[#0B0F1A]/95 border border-slate-700/80 p-2.5 rounded-2xl max-w-xl shadow-xl backdrop-blur-md">
-                <div className="flex items-center gap-2 w-full px-2">
-                  <Search className="w-4 h-4 text-slate-400 shrink-0" />
-                  <input 
-                    type="text" 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleCityScan()}
-                    placeholder="Search any city, e.g., Tokyo, London, Singapore..."
-                    className="bg-transparent border-none outline-none text-xs text-white w-full placeholder:text-slate-500"
-                  />
-                </div>
-                <button 
-                  onClick={handleCityScan}
-                  disabled={isScanning}
-                  className="w-full sm:w-auto px-6 py-2.5 bg-[#22FFAA] text-slate-950 font-semibold text-xs rounded-xl hover:bg-[#1edb95] transition whitespace-nowrap shadow-[0_0_15px_rgba(34,255,170,0.3)] flex items-center justify-center gap-2"
-                >
-                  {isScanning ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      Scanning...
-                    </>
-                  ) : (
-                    "Scan City"
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* DASHBOARD CONTENT CONTAINER */}
-        <div className="px-6 md:px-8 pb-12 space-y-6">
-
-          {/* SECTION 1: 5 CORE ECOLOGICAL VECTORS */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Cpu className="w-4 h-4 text-[#22FFAA]" />
-                  5 Core Ecological Vectors · {selectedCity}
-                </h3>
-                <p className="text-xs text-slate-400">Live multi-spectral telemetry tracking biological and industrial parameters.</p>
-              </div>
-              <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-xl">
+              <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-xl">
                 All Systems Normal
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              
-              {/* Metric 1: Air Quality */}
-              <div className="p-4 rounded-2xl bg-[#0B0F1A]/85 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between hover:border-[#22FFAA]/40 transition group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition">
-                    <Wind className="w-4 h-4" />
-                  </div>
-                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">Improving</span>
-                </div>
+              <div className="p-5 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 flex flex-col justify-between shadow-xl">
                 <div>
-                  <span className="text-[11px] text-slate-400 font-medium block">Air Quality Index</span>
-                  <div className="text-2xl font-extrabold text-white font-mono mt-0.5">{airQualityIndex} <span className="text-xs text-cyan-400 font-normal">AQI</span></div>
+                  <div className="flex items-center justify-between mb-3 text-slate-400">
+                    <Wind className="w-4 h-4 text-[#22FFAA]" />
+                    <span className="text-[10px] font-mono">VECTOR</span>
+                  </div>
+                  <span className="text-xs text-slate-400 block mb-1">Air Quality</span>
+                  <div className="text-2xl font-extrabold text-white font-mono">{airQualityIndex} <span className="text-xs font-normal text-slate-400">AQI</span></div>
                 </div>
-                <div className="mt-3 w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-cyan-400 h-full" style={{ width: `${Math.min(airQualityIndex, 100)}%` }}></div>
+                <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
+                  <span className="text-emerald-400">Improving ↗</span>
+                  <div className="w-3 h-3 rounded-full bg-[#22FFAA]"></div>
                 </div>
               </div>
 
-              {/* Metric 2: Water Purity */}
-              <div className="p-4 rounded-2xl bg-[#0B0F1A]/85 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between hover:border-[#22FFAA]/40 transition group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition">
-                    <Droplets className="w-4 h-4" />
-                  </div>
-                  <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">Stable</span>
-                </div>
+              <div className="p-5 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 flex flex-col justify-between shadow-xl">
                 <div>
-                  <span className="text-[11px] text-slate-400 font-medium block">Water Purity Score</span>
-                  <div className="text-2xl font-extrabold text-white font-mono mt-0.5">{waterPurityScore}%</div>
+                  <div className="flex items-center justify-between mb-3 text-slate-400">
+                    <Droplets className="w-4 h-4 text-cyan-400" />
+                    <span className="text-[10px] font-mono">VECTOR</span>
+                  </div>
+                  <span className="text-xs text-slate-400 block mb-1">Water Purity</span>
+                  <div className="text-2xl font-extrabold text-white font-mono">{waterPurityScore} <span className="text-xs font-normal text-slate-400">/100</span></div>
                 </div>
-                <div className="mt-3 w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-blue-400 h-full" style={{ width: `${waterPurityScore}%` }}></div>
+                <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
+                  <span className="text-cyan-400">Stable →</span>
+                  <div className="w-3 h-3 rounded-full bg-cyan-400"></div>
                 </div>
               </div>
 
-              {/* Metric 3: Green Canopy */}
-              <div className="p-4 rounded-2xl bg-[#0B0F1A]/85 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between hover:border-[#22FFAA]/40 transition group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition">
+              <div className="p-5 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 flex flex-col justify-between shadow-xl">
+                <div>
+                  <div className="flex items-center justify-between mb-3 text-slate-400">
+                    <Trees className="w-4 h-4 text-emerald-400" />
+                    <span className="text-[10px] font-mono">VECTOR</span>
+                  </div>
+                  <span className="text-xs text-slate-400 block mb-1">Green Canopy Density</span>
+                  <div className="text-2xl font-extrabold text-white font-mono">{greenCanopyIndex}%</div>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400">Target: 40%</span>
+                  <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 flex flex-col justify-between shadow-xl">
+                <div>
+                  <div className="flex items-center justify-between mb-3 text-slate-400">
+                    <Flame className="w-4 h-4 text-amber-400" />
+                    <span className="text-[10px] font-mono">VECTOR</span>
+                  </div>
+                  <span className="text-xs text-slate-400 block mb-1">Carbon Output Rate</span>
+                  <div className="text-2xl font-extrabold text-white font-mono">{carbonEmissionRate} <span className="text-xs font-normal text-slate-400">kt/mo</span></div>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
+                  <span className="text-amber-400">-8.4% YoY</span>
+                  <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 flex flex-col justify-between shadow-xl">
+                <div>
+                  <div className="flex items-center justify-between mb-3 text-slate-400">
+                    <Volume2 className="w-4 h-4 text-rose-400" />
+                    <span className="text-[10px] font-mono">VECTOR</span>
+                  </div>
+                  <span className="text-xs text-slate-400 block mb-1">Noise Pollution Level</span>
+                  <div className="text-2xl font-extrabold text-white font-mono">{noisePollutionLevel} <span className="text-xs font-normal text-slate-400">dB</span></div>
+                </div>
+                <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
+                  <span className="text-rose-400">Moderate</span>
+                  <div className="w-3 h-3 rounded-full bg-rose-400"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-12 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 text-center space-y-3 shadow-xl">
+            <Globe className="w-10 h-10 text-slate-600 mx-auto animate-spin" style={{ animationDuration: '20s' }} />
+            <h3 className="text-white font-bold text-sm">No City Initialized</h3>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">Please enter a city name in the search bar above to generate the live telemetry vector dashboard.</p>
+          </div>
+        )}
+
+        {/* SECTION 2: THE 3 COMPETITION SOLUTION FEATURES (GRID) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* FEATURE 1: Urban Heat Island (UHI) Simulator */}
+          <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl flex flex-col justify-between shadow-xl">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
                     <Sun className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">Target: 40%</span>
+                  <h3 className="text-white font-bold text-sm">UHI Policy Simulator</h3>
                 </div>
-                <div>
-                  <span className="text-[11px] text-slate-400 font-medium block">Green Canopy Density</span>
-                  <div className="text-2xl font-extrabold text-white font-mono mt-0.5">{greenCanopyIndex}%</div>
-                </div>
-                <div className="mt-3 w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-emerald-400 h-full" style={{ width: `${greenCanopyIndex}%` }}></div>
-                </div>
+                <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">Interactive Sandbox</span>
               </div>
+              <p className="text-xs text-slate-400 mb-5 leading-relaxed">Simulate municipal interventions to mitigate peak summer urban temperatures in real time.</p>
 
-              {/* Metric 4: Carbon Emissions */}
-              <div className="p-4 rounded-2xl bg-[#0B0F1A]/85 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between hover:border-[#22FFAA]/40 transition group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:scale-110 transition">
-                    <Flame className="w-4 h-4" />
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-xs text-slate-300 mb-1.5">
+                    <span>Tree Canopy Coverage</span>
+                    <span className="font-mono text-[#22FFAA]">{treeCoverage}%</span>
                   </div>
-                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">-8.4% YoY</span>
+                  <input 
+                    type="range" min="0" max="80" value={treeCoverage} 
+                    onChange={(e) => setTreeCoverage(Number(e.target.value))}
+                    className="w-full accent-[#22FFAA] cursor-pointer bg-slate-800 h-1.5 rounded-lg"
+                  />
                 </div>
-                <div>
-                  <span className="text-[11px] text-slate-400 font-medium block">Carbon Output Rate</span>
-                  <div className="text-2xl font-extrabold text-white font-mono mt-0.5">{carbonEmissionRate} <span className="text-xs text-slate-400 font-normal">kt/mo</span></div>
-                </div>
-                <div className="mt-3 w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-amber-400 h-full" style={{ width: '65%' }}></div>
-                </div>
-              </div>
 
-              {/* Metric 5: Acoustic Noise */}
-              <div className="p-4 rounded-2xl bg-[#0B0F1A]/85 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between hover:border-[#22FFAA]/40 transition group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition">
-                    <Activity className="w-4 h-4" />
+                <div>
+                  <div className="flex justify-between text-xs text-slate-300 mb-1.5">
+                    <span>Cool / White Roof Adoption</span>
+                    <span className="font-mono text-[#22FFAA]">{whiteRoof}%</span>
                   </div>
-                  <span className="text-[10px] font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">Moderate</span>
+                  <input 
+                    type="range" min="0" max="100" value={whiteRoof} 
+                    onChange={(e) => setWhiteRoof(Number(e.target.value))}
+                    className="w-full accent-[#22FFAA] cursor-pointer bg-slate-800 h-1.5 rounded-lg"
+                  />
                 </div>
+
                 <div>
-                  <span className="text-[11px] text-slate-400 font-medium block">Noise Pollution Level</span>
-                  <div className="text-2xl font-extrabold text-white font-mono mt-0.5">{noisePollutionLevel} <span className="text-xs text-purple-400 font-normal">dB</span></div>
-                </div>
-                <div className="mt-3 w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-purple-400 h-full" style={{ width: `${noisePollutionLevel}%` }}></div>
+                  <div className="flex justify-between text-xs text-slate-300 mb-1.5">
+                    <span>Industrial Heat Cap</span>
+                    <span className="font-mono text-[#22FFAA]">{industrialCap}%</span>
+                  </div>
+                  <input 
+                    type="range" min="0" max="50" value={industrialCap} 
+                    onChange={(e) => setIndustrialCap(Number(e.target.value))}
+                    className="w-full accent-[#22FFAA] cursor-pointer bg-slate-800 h-1.5 rounded-lg"
+                  />
                 </div>
               </div>
+            </div>
 
+            <div className="mt-6 p-4 rounded-2xl bg-[#22FFAA]/10 border border-[#22FFAA]/30 flex items-center justify-between shadow-inner">
+              <div>
+                <span className="text-[11px] text-[#22FFAA] font-semibold block">Predicted Summer Cooling:</span>
+                <span className="text-[10px] text-slate-400">Model verified via satellite telemetry</span>
+              </div>
+              <span className="text-lg font-extrabold text-white font-mono">
+                -{(treeCoverage * 0.032 + whiteRoof * 0.018 + industrialCap * 0.025).toFixed(1)} °C
+              </span>
             </div>
           </div>
 
-          {/* SECTION 2: THE 3 COMPETITION SOLUTION FEATURES (GRID) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            {/* FEATURE 1: Urban Heat Island (UHI) Simulator */}
-            <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl flex flex-col justify-between shadow-xl">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                      <Sun className="w-4 h-4" />
-                    </div>
-                    <h3 className="text-white font-bold text-sm">UHI Policy Simulator</h3>
+          {/* FEATURE 2: Live Citizen Hazard Reporting & Crowdsourced Pin Map */}
+          <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl flex flex-col justify-between shadow-xl">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <AlertCircle className="w-4 h-4" />
                   </div>
-                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">Interactive Sandbox</span>
+                  <h3 className="text-white font-bold text-sm">Citizen Hazard Pin Map</h3>
                 </div>
-                <p className="text-xs text-slate-400 mb-5 leading-relaxed">Simulate municipal interventions to mitigate peak summer urban temperatures in real time.</p>
+                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">Crowdsourced Vector</span>
+              </div>
+              <p className="text-xs text-slate-400 mb-3 leading-relaxed">Log civic hazards to instantly plot coordinates onto the municipal grid overlay.</p>
 
-                {/* Sliders Container */}
-                <div className="space-y-4">
-                  {/* Tree Canopy */}
-                  <div>
-                    <div className="flex justify-between text-xs text-slate-300 mb-1.5">
-                      <span>Tree Canopy Coverage</span>
-                      <span className="font-mono text-[#22FFAA]">{treeCoverage}%</span>
+              <div className="w-full h-32 rounded-2xl bg-[#131B2E] border border-slate-800 relative mb-3 overflow-hidden flex items-center justify-center group">
+                <div className="absolute inset-0 bg-[radial-gradient(#34d399_1px,transparent_1px)] [background-size:14px_14px] opacity-20"></div>
+                
+                {reports.map((r) => (
+                  <div 
+                    key={`map-pin-${r.id}`}
+                    className="absolute group/pin cursor-pointer transform -translate-x-1/2 -translate-y-1/2"
+                    style={{ top: r.coords.y, left: r.coords.x }}
+                  >
+                    <span className={`absolute -inset-1 rounded-full animate-ping opacity-75 ${
+                      r.severity === 'Critical' ? 'bg-rose-500' : r.severity === 'High' ? 'bg-amber-400' : 'bg-emerald-400'
+                    }`}></span>
+                    <div className={`relative w-3.5 h-3.5 rounded-full border border-slate-900 shadow-md flex items-center justify-center ${
+                      r.severity === 'Critical' ? 'bg-rose-500' : r.severity === 'High' ? 'bg-amber-400' : 'bg-emerald-400'
+                    }`}></div>
+                    
+                    <div className="absolute bottom-5 left-1/2 -translate-x-1/2 hidden group-hover/pin:flex flex-col bg-slate-950 text-white text-[10px] p-2 rounded-lg border border-slate-800 shadow-xl whitespace-nowrap z-30">
+                      <span className="font-bold text-[#22FFAA]">{r.type}</span>
+                      <span className="text-slate-300">{r.location}</span>
+                      <span className="text-slate-400 font-mono text-[9px]">Severity: {r.severity}</span>
                     </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="80" 
-                      value={treeCoverage} 
-                      onChange={(e) => setTreeCoverage(Number(e.target.value))}
-                      className="w-full accent-[#22FFAA] cursor-pointer bg-slate-800 h-1.5 rounded-lg"
-                    />
                   </div>
+                ))}
 
-                  {/* Cool Roof Adoption */}
-                  <div>
-                    <div className="flex justify-between text-xs text-slate-300 mb-1.5">
-                      <span>Cool / White Roof Adoption</span>
-                      <span className="font-mono text-[#22FFAA]">{whiteRoof}%</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="100" 
-                      value={whiteRoof} 
-                      onChange={(e) => setWhiteRoof(Number(e.target.value))}
-                      className="w-full accent-[#22FFAA] cursor-pointer bg-slate-800 h-1.5 rounded-lg"
-                    />
-                  </div>
-
-                  {/* Industrial Emission Cap */}
-                  <div>
-                    <div className="flex justify-between text-xs text-slate-300 mb-1.5">
-                      <span>Industrial Heat Cap</span>
-                      <span className="font-mono text-[#22FFAA]">{industrialCap}%</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="50" 
-                      value={industrialCap} 
-                      onChange={(e) => setIndustrialCap(Number(e.target.value))}
-                      className="w-full accent-[#22FFAA] cursor-pointer bg-slate-800 h-1.5 rounded-lg"
-                    />
-                  </div>
+                <div className="absolute bottom-2 right-2 bg-slate-950/80 backdrop-blur border border-slate-800/80 px-2 py-1 rounded text-[9px] font-mono text-slate-300 flex items-center gap-1.5 z-10">
+                  <Navigation className="w-3 h-3 text-[#22FFAA]" />
+                  <span>{reports.length} Active Pins Mapped</span>
                 </div>
               </div>
 
-              {/* Calculated Cooling Impact Badge */}
-              <div className="mt-6 p-4 rounded-2xl bg-[#22FFAA]/10 border border-[#22FFAA]/30 flex items-center justify-between shadow-inner">
-                <div>
-                  <span className="text-[11px] text-[#22FFAA] font-semibold block">Predicted Summer Cooling:</span>
-                  <span className="text-[10px] text-slate-400">Model verified via satellite telemetry</span>
+              <form onSubmit={handleAddHazard} className="space-y-2 mb-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <select 
+                    value={newHazardType} 
+                    onChange={(e) => setNewHazardType(e.target.value)}
+                    className="w-full bg-[#131B2E] border border-slate-800 text-xs text-white p-2 rounded-xl outline-none focus:border-[#22FFAA] transition"
+                  >
+                    <option value="Illegal Dumping">Illegal Dumping</option>
+                    <option value="Clogged Drainage">Clogged Drainage</option>
+                    <option value="Toxic Smoke">Toxic Smoke</option>
+                    <option value="Broken Water Pipe">Broken Water Pipe</option>
+                  </select>
+
+                  <select 
+                    value={newHazardSeverity} 
+                    onChange={(e) => setNewHazardSeverity(e.target.value as 'Low' | 'Medium' | 'High' | 'Critical')}
+                    className="w-full bg-[#131B2E] border border-slate-800 text-xs text-white p-2 rounded-xl outline-none focus:border-[#22FFAA] transition"
+                  >
+                    <option value="Low">Severity: Low</option>
+                    <option value="Medium">Severity: Medium</option>
+                    <option value="High">Severity: High</option>
+                    <option value="Critical">Severity: Critical</option>
+                  </select>
                 </div>
-                <span className="text-lg font-extrabold text-white font-mono">
-                  -{(treeCoverage * 0.032 + whiteRoof * 0.018 + industrialCap * 0.025).toFixed(1)} °C
-                </span>
+
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Enter street name or sector..." 
+                    value={newHazardLocation}
+                    onChange={(e) => setNewHazardLocation(e.target.value)}
+                    className="w-full bg-[#131B2E] border border-slate-800 text-xs text-white p-2.5 rounded-xl outline-none placeholder:text-slate-500 focus:border-[#22FFAA] transition"
+                  />
+                  <button 
+                    type="submit"
+                    className="px-4 py-2.5 rounded-xl bg-[#22FFAA] text-slate-950 font-semibold text-xs hover:bg-[#1edb95] transition whitespace-nowrap shadow-[0_0_15px_rgba(34,255,170,0.2)]"
+                  >
+                    Drop Pin
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold text-slate-300">Telemetry Incident Feed</span>
+                <div className="flex gap-1 text-[10px] font-mono">
+                  {['All', 'Pending', 'In Progress', 'Resolved'].map((filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => setActiveFilter(filter)}
+                      className={`px-2 py-0.5 rounded transition ${
+                        activeFilter === filter 
+                          ? 'bg-[#22FFAA]/20 text-[#22FFAA] border border-[#22FFAA]/30' 
+                          : 'bg-slate-900 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                {filteredReports.length === 0 ? (
+                  <div className="text-center py-4 text-xs text-slate-500 font-mono">No reports found matching criteria.</div>
+                ) : (
+                  filteredReports.map((r) => (
+                    <div key={r.id} className="p-2.5 rounded-xl bg-[#131B2E] border border-slate-800/70 flex items-center justify-between text-xs">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-medium">{r.type}</span>
+                          <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded ${
+                            r.severity === 'Critical' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
+                            r.severity === 'High' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                            'bg-slate-800 text-slate-300'
+                          }`}>
+                            {r.severity}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 block">{r.location} · {r.date}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded font-mono text-[10px] border flex items-center gap-1 ${
+                          r.status === 'Resolved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                          r.status === 'In Progress' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
+                          'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                        }`}>
+                          {r.status === 'Resolved' && <CheckCircle2 className="w-3 h-3" />}
+                          {r.status === 'In Progress' && <Navigation className="w-3 h-3" />}
+                          {r.status === 'Pending' && <Clock className="w-3 h-3" />}
+                          {r.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* FEATURE 3: Flash Flood & Stormwater Risk Predictor */}
+          <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl flex flex-col justify-between shadow-xl">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                    <Droplets className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-white font-bold text-sm">Flash Flood Predictor</h3>
+                </div>
+                <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded">Topography Model</span>
+              </div>
+              <p className="text-xs text-slate-400 mb-5 leading-relaxed">Real-time stormwater capacity analysis based on precipitation rates.</p>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-xs text-slate-300 mb-1.5">
+                    <span>Precipitation Rate</span>
+                    <span className="font-mono text-cyan-400">{rainfall} mm/hr</span>
+                  </div>
+                  <input 
+                    type="range" min="2" max="60" value={rainfall} 
+                    onChange={(e) => setRainfall(Number(e.target.value))}
+                    className="w-full accent-cyan-400 cursor-pointer bg-slate-800 h-1.5 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs text-slate-300 mb-1.5">
+                    <span>Drainage Capacity</span>
+                    <span className="font-mono text-cyan-400">{drainageCapacity}%</span>
+                  </div>
+                  <input 
+                    type="range" min="30" max="100" value={drainageCapacity} 
+                    onChange={(e) => setDrainageCapacity(Number(e.target.value))}
+                    className="w-full accent-cyan-400 cursor-pointer bg-slate-800 h-1.5 rounded-lg"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* FEATURE 2: Citizen Crowdsourcing & Hazard Reporting */}
-            <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl flex flex-col justify-between shadow-xl">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                      <AlertCircle className="w-4 h-4" />
-                    </div>
-                    <h3 className="text-white font-bold text-sm">Citizen Hazard Crowdsourcing</h3>
-                  </div>
-                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">Live Node Feed</span>
+            <div className={`mt-6 p-4 rounded-2xl border flex flex-col gap-1.5 shadow-inner ${
+              rainfall > 35 || drainageCapacity < 50
+                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' 
+                : rainfall > 20 
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' 
+                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+            }`}>
+              <div className="flex items-center justify-between text-xs font-bold">
+                <span>{rainfall > 35 ? 'Critical Flood Alert' : rainfall > 20 ? 'Moderate Caution' : 'Normal Drainage Status'}</span>
+                <span className="font-mono">{rainfall > 35 ? 'Risk: 89%' : rainfall > 20 ? 'Risk: 44%' : 'Risk: 11%'}</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                {rainfall > 35 
+                  ? 'AI Action: Reroute low-elevation traffic & engage emergency pumps.' 
+                  : 'Municipal stormwater networks operating safely within thresholds.'}
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        {/* SECTION 3: GEOSPATIAL TELEMETRY MAP & AI RECOMMENDATIONS */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <div className="lg:col-span-2 p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <MapPin className="w-4 h-4 text-[#22FFAA]" />
+                  <h3 className="text-white font-bold text-sm">Geospatial Telemetry Grid & Sector Radar</h3>
                 </div>
-                <p className="text-xs text-slate-400 mb-4 leading-relaxed">Log civic environmental infractions directly into municipal grid queues.</p>
-
-                {/* Form Input Area */}
-                <div className="space-y-2.5 mb-4">
-                  <select 
-                    value={newHazard.type} 
-                    onChange={(e) => setNewHazard({...newHazard, type: e.target.value})}
-                    className="w-full bg-[#131B2E] border border-slate-800 text-xs text-white p-2.5 rounded-xl outline-none focus:border-[#22FFAA] transition"
-                  >
-                    <option value="Illegal Dumping">Illegal Waste Dumping</option>
-                    <option value="Clogged Drainage">Clogged Storm Drain</option>
-                    <option value="Toxic Smoke">Toxic Smoke Emissions</option>
-                    <option value="Broken Water Pipe">Broken Water Main</option>
-                  </select>
-
-                  <input 
-                    type="text" 
-                    placeholder="Enter Street Name or District..." 
-                    value={newHazard.location}
-                    onChange={(e) => setNewHazard({...newHazard, location: e.target.value})}
-                    className="w-full bg-[#131B2E] border border-slate-800 text-xs text-white p-2.5 rounded-xl outline-none placeholder:text-slate-500 focus:border-[#22FFAA] transition"
-                  />
-
-                  <button 
-                    onClick={() => {
-                      if (!newHazard.location) return;
-                      setReports([{ 
-                        id: Date.now(), 
-                        type: newHazard.type, 
-                        location: newHazard.location, 
-                        severity: "High", 
-                        status: "Pending",
-                        date: "Aug 18, 2026"
-                      }, ...reports]);
-                      setNewHazard({ ...newHazard, location: "" });
-                    }}
-                    className="w-full py-2.5 rounded-xl bg-[#22FFAA] text-slate-950 font-semibold text-xs hover:bg-[#1edb95] transition shadow-[0_0_15px_rgba(34,255,170,0.2)]"
-                  >
-                    Submit Report to Grid
-                  </button>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="text-xs text-slate-400 font-mono">Live Sector Map</span>
                 </div>
               </div>
+              <CityMap selectedCity={selectedCity} airQualityIndex={airQualityIndex} />
+            </div>
 
-              {/* Reports Live Feed */}
-              <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
-                {reports.map((r) => (
-                  <div key={r.id} className="p-2.5 rounded-xl bg-[#131B2E] border border-slate-800/70 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="text-white font-medium block">{r.type}</span>
-                      <span className="text-[10px] text-slate-400">{r.location}</span>
+            <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-800/60 text-xs text-slate-400">
+              <span className="font-mono">Elevation: 12m ASL</span>
+              <div className="flex gap-4">
+                <span className="text-[#22FFAA]">● Thermal Layer</span>
+                <span className="text-cyan-400">● Hydrology</span>
+                <span className="text-amber-400">● Carbon Flux</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2.5 mb-4">
+                <ShieldAlert className="w-4 h-4 text-[#22FFAA]" />
+                <h3 className="text-white font-bold text-sm">AI Urban Recommendations</h3>
+              </div>
+
+              <div className="space-y-3">
+                {recommendations.map((rec) => (
+                  <div key={rec.id} className="p-3.5 rounded-2xl bg-[#131B2E] border border-slate-800/70 text-xs space-y-1 hover:border-[#22FFAA]/30 transition">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-[#22FFAA] bg-[#22FFAA]/10 px-2 py-0.5 rounded">{rec.category}</span>
+                      <span className="text-[10px] font-mono text-slate-400">{rec.status}</span>
                     </div>
-                    <span className="px-2 py-1 rounded bg-amber-500/10 text-amber-400 font-mono text-[10px] border border-amber-500/20">
-                      {r.status}
-                    </span>
+                    <strong className="text-white block">{rec.title}</strong>
+                    <p className="text-[11px] text-slate-400">Expected Impact: <span className="text-emerald-400 font-semibold">{rec.impact}</span></p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* FEATURE 3: Flash Flood & Stormwater Risk Predictor */}
-            <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl flex flex-col justify-between shadow-xl">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                      <Droplets className="w-4 h-4" />
-                    </div>
-                    <h3 className="text-white font-bold text-sm">Flash Flood Predictor</h3>
-                  </div>
-                  <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded">Topography Model</span>
-                </div>
-                <p className="text-xs text-slate-400 mb-5 leading-relaxed">Real-time stormwater capacity analysis based on precipitation rates.</p>
-
-                {/* Rainfall Slider */}
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-xs text-slate-300 mb-1.5">
-                      <span>Precipitation Rate</span>
-                      <span className="font-mono text-cyan-400">{rainfall} mm/hr</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="2" 
-                      max="60" 
-                      value={rainfall} 
-                      onChange={(e) => setRainfall(Number(e.target.value))}
-                      className="w-full accent-cyan-400 cursor-pointer bg-slate-800 h-1.5 rounded-lg"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs text-slate-300 mb-1.5">
-                      <span>Drainage Capacity</span>
-                      <span className="font-mono text-cyan-400">{drainageCapacity}%</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="30" 
-                      max="100" 
-                      value={drainageCapacity} 
-                      onChange={(e) => setDrainageCapacity(Number(e.target.value))}
-                      className="w-full accent-cyan-400 cursor-pointer bg-slate-800 h-1.5 rounded-lg"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Dynamic Risk Box */}
-              <div className={`mt-6 p-4 rounded-2xl border flex flex-col gap-1.5 shadow-inner ${
-                rainfall > 35 || drainageCapacity < 50
-                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' 
-                  : rainfall > 20 
-                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' 
-                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-              }`}>
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span>{rainfall > 35 ? 'Critical Flood Alert' : rainfall > 20 ? 'Moderate Caution' : 'Normal Drainage Status'}</span>
-                  <span className="font-mono">{rainfall > 35 ? 'Risk: 89%' : rainfall > 20 ? 'Risk: 44%' : 'Risk: 11%'}</span>
-                </div>
-                <p className="text-[11px] text-slate-300 leading-relaxed">
-                  {rainfall > 35 
-                    ? 'AI Action: Reroute low-elevation traffic & engage emergency pumps.' 
-                    : 'Municipal stormwater networks operating safely within thresholds.'}
-                </p>
-              </div>
-            </div>
-
-          </div>
-
-          {/* SECTION 3: GEOSPATIAL TELEMETRY MAP & AI RECOMMENDATIONS */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Geospatial Map Panel */}
-            <div className="lg:col-span-2 p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl shadow-xl flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2.5">
-                    <MapPin className="w-4 h-4 text-[#22FFAA]" />
-                    <h3 className="text-white font-bold text-sm">Geospatial Telemetry Grid & Sector Radar</h3>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span className="text-xs text-slate-400 font-mono">Live Sector Map</span>
-                  </div>
-                </div>
-                
-                {/* Simulated Telemetry Map Box */}
-                <CityMap selectedCity={selectedCity} airQualityIndex={airQualityIndex} />
-                  <div className="absolute inset-0 bg-[radial-gradient(#22FFAA_1px,transparent_1px)] [background-size:20px_20px] opacity-15"></div>
-                  
-                  {/* Radar Scanning Ring Effect */}
-                  <div className="absolute w-48 h-48 rounded-full border border-[#22FFAA]/20 animate-ping pointer-events-none"></div>
-                  
-                  {/* Map Hotspots */}
-                  <div className="absolute top-12 left-20 px-3 py-1.5 rounded-xl bg-[#0B0F1A]/90 border border-[#22FFAA]/30 text-[10px] font-mono text-[#22FFAA] shadow-lg flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#22FFAA] animate-pulse"></span>
-                    Central Hub: 47 AQI
-                  </div>
-
-                  <div className="absolute bottom-16 right-24 px-3 py-1.5 rounded-xl bg-[#0B0F1A]/90 border border-cyan-500/30 text-[10px] font-mono text-cyan-400 shadow-lg flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                    Industrial Vector: Active
-                  </div>
-
-                  <div className="text-center z-10 space-y-2">
-                    <div className="w-14 h-14 rounded-2xl bg-[#22FFAA]/10 border border-[#22FFAA]/30 flex items-center justify-center mx-auto text-[#22FFAA] shadow-[0_0_20px_rgba(34,255,170,0.2)]">
-                      <Compass className="w-7 h-7 animate-spin" style={{ animationDuration: '15s' }} />
-                    </div>
-                    <p className="text-xs text-slate-200 font-semibold">Autonomous Sensor Grid Synchronized</p>
-                    <span className="text-[10px] text-slate-400 font-mono block">Target Coordinates: 40.7128° N, 74.0060° W · 1,420 Active Nodes</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Map Controls Footer */}
-              <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-800/60 text-xs text-slate-400">
-                <span className="font-mono">Elevation: 12m ASL</span>
-                <div className="flex gap-4">
-                  <span className="text-[#22FFAA]">● Thermal Layer</span>
-                  <span className="text-cyan-400">● Hydrology</span>
-                  <span className="text-amber-400">● Carbon Flux</span>
-                </div>
-              </div>
-            </div>
-
-            {/* AI Recommendations List Panel */}
-            <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl shadow-xl flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-2.5 mb-4">
-                  <ShieldAlert className="w-4 h-4 text-[#22FFAA]" />
-                  <h3 className="text-white font-bold text-sm">AI Urban Recommendations</h3>
-                </div>
-
-                <div className="space-y-3">
-                  {recommendations.map((rec) => (
-                    <div key={rec.id} className="p-3.5 rounded-2xl bg-[#131B2E] border border-slate-800/70 text-xs space-y-1 hover:border-[#22FFAA]/30 transition">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono text-[#22FFAA] bg-[#22FFAA]/10 px-2 py-0.5 rounded">{rec.category}</span>
-                        <span className="text-[10px] font-mono text-slate-400">{rec.status}</span>
-                      </div>
-                      <strong className="text-white block">{rec.title}</strong>
-                      <p className="text-[11px] text-slate-400">Expected Impact: <span className="text-emerald-400 font-semibold">{rec.impact}</span></p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <button 
-                onClick={() => alert("Full AI Audit report generated and queued for export.")}
-                className="w-full mt-5 py-3 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-white hover:bg-slate-800 transition shadow-md"
-              >
-                Export Full AI Audit
-              </button>
-            </div>
-
-          </div>
-
-          {/* SECTION 4: GLOBAL TOP 10 CLEANEST CITIES TABLE */}
-          <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-[#22FFAA]" />
-                  Global Top 10 Cleanest Cities Benchmark
-                </h3>
-                <p className="text-xs text-slate-400">Real-time international ranking based on multi-vector biological telemetry.</p>
-              </div>
-              <span className="text-xs font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
-                Updated Live
-              </span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-800 text-[11px] font-mono text-slate-400 uppercase">
-                    <th className="py-3 px-4">Rank</th>
-                    <th className="py-3 px-4">City</th>
-                    <th className="py-3 px-4">Country</th>
-                    <th className="py-3 px-4">Telemetry Score</th>
-                    <th className="py-3 px-4 text-right">YoJ Trend</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 text-xs">
-                  {cleanestCities.map((item) => (
-                    <tr key={item.rank} className="hover:bg-slate-900/40 transition">
-                      <td className="py-3.5 px-4 font-mono font-bold text-[#22FFAA]">#{item.rank}</td>
-                      <td className="py-3.5 px-4 font-semibold text-white">{item.city}</td>
-                      <td className="py-3.5 px-4 text-slate-400">{item.country}</td>
-                      <td className="py-3.5 px-4 font-mono text-cyan-400">{item.score} / 100</td>
-                      <td className="py-3.5 px-4 text-right font-mono text-emerald-400">{item.change}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* SECTION 5: DECADE VIEW HISTORICAL TIMELINE */}
-          <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-[#22FFAA]" />
-                  Decade View · Historical & Predictive Urban Timeline
-                </h3>
-                <p className="text-xs text-slate-400">Tracking environmental evolution and future AI projections from 2018 to 2030.</p>
-              </div>
-              <span className="text-xs font-mono text-[#22FFAA] bg-[#22FFAA]/10 border border-[#22FFAA]/20 px-3 py-1 rounded-xl">
-                AI Forecast Model Active
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4 pt-4">
-              {timelineData.map((t, idx) => (
-                <div key={idx} className={`p-4 rounded-2xl border flex flex-col justify-between ${
-                  t.isHighlighted 
-                    ? 'bg-[#22FFAA]/10 border-[#22FFAA]/40 shadow-[0_0_20px_rgba(34,255,170,0.1)]' 
-                    : t.isForecast 
-                    ? 'bg-slate-900/40 border-slate-800/80 border-dashed' 
-                    : 'bg-[#131B2E] border-slate-800'
-                }`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-[10px] font-mono text-slate-400">{t.year}</span>
-                    {t.isForecast && <span className="text-[9px] font-mono text-[#22FFAA]">Est.</span>}
-                  </div>
-                  <div className="my-2">
-                    <div className="text-xl font-extrabold text-white font-mono">{t.score}</div>
-                    <span className="text-[10px] text-slate-400">Health Score</span>
-                  </div>
-                  <div className="w-full bg-slate-800/80 h-1.5 rounded-full mt-3 overflow-hidden">
-                    <div className={`h-full ${t.isForecast ? 'bg-[#22FFAA]/60' : 'bg-[#22FFAA]'}`} style={{ width: t.height }}></div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <button 
+              onClick={() => alert("Full AI Audit report generated and queued for export.")}
+              className="w-full mt-5 py-3 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-white hover:bg-slate-800 transition shadow-md"
+            >
+              Export Full AI Audit
+            </button>
           </div>
 
         </div>
+
+        {/* SECTION 4: GLOBAL TOP 10 CLEANEST CITIES TABLE */}
+        <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl shadow-xl">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#22FFAA]" />
+                Global Top 10 Cleanest Cities Benchmark
+              </h3>
+              <p className="text-xs text-slate-400">Real-time international ranking based on multi-vector biological telemetry.</p>
+            </div>
+            <span className="text-xs font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
+              Updated Live
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800 text-[11px] font-mono text-slate-400 uppercase">
+                  <th className="py-3 px-4">Rank</th>
+                  <th className="py-3 px-4">City</th>
+                  <th className="py-3 px-4">Country</th>
+                  <th className="py-3 px-4">Telemetry Score</th>
+                  <th className="py-3 px-4 text-right">YoY Trend</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 text-xs">
+                {cleanestCities.map((item) => (
+                  <tr key={item.rank} className="hover:bg-slate-900/40 transition">
+                    <td className="py-3.5 px-4 font-mono font-bold text-[#22FFAA]">#{item.rank}</td>
+                    <td className="py-3.5 px-4 font-semibold text-white">{item.city}</td>
+                    <td className="py-3.5 px-4 text-slate-400">{item.country}</td>
+                    <td className="py-3.5 px-4 font-mono text-cyan-400">{item.score} / 100</td>
+                    <td className="py-3.5 px-4 text-right font-mono text-emerald-400">{item.change}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* SECTION 5: DECADE VIEW HISTORICAL TIMELINE */}
+        <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl shadow-xl">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-[#22FFAA]" />
+                Decade View · Historical & Predictive Urban Timeline
+              </h3>
+              <p className="text-xs text-slate-400">Tracking environmental evolution and future AI projections from 2018 to 2030.</p>
+            </div>
+            <span className="text-xs font-mono text-[#22FFAA] bg-[#22FFAA]/10 border border-[#22FFAA]/20 px-3 py-1 rounded-xl">
+              AI Forecast Model Active
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4 pt-4">
+            {timelineData.map((t, idx) => (
+              <div key={idx} className={`p-4 rounded-2xl border flex flex-col justify-between ${
+                t.isHighlighted 
+                  ? 'bg-[#22FFAA]/10 border-[#22FFAA]/40 shadow-[0_0_20px_rgba(34,255,170,0.1)]' 
+                  : t.isForecast 
+                  ? 'bg-slate-900/40 border-slate-800/80 border-dashed' 
+                  : 'bg-[#131B2E] border-slate-800'
+              }`}>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-mono text-slate-400">{t.year}</span>
+                  {t.isForecast && <span className="text-[9px] font-mono text-[#22FFAA]">Est.</span>}
+                </div>
+                <div className="my-2">
+                  <div className="text-xl font-extrabold text-white font-mono">{t.score}</div>
+                  <span className="text-[10px] text-slate-400">Health Score</span>
+                </div>
+                <div className="w-full bg-slate-800/80 h-1.5 rounded-full mt-3 overflow-hidden">
+                  <div className={`h-full ${t.isForecast ? 'bg-[#22FFAA]/60' : 'bg-[#22FFAA]'}`} style={{ width: t.height }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </main>
     </div>
   );
