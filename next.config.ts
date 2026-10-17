@@ -1,13 +1,7 @@
-/** @type {import('next').NextStyle}.Config */
+import type { NextConfig } from 'next';
+
 const nextConfig = {
-  typescript: {
-    // ⚠️ Tells Next.js to ignore TypeScript errors so Vercel builds NO MATTER WHAT
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    // Ignores ESLint errors during builds
-    ignoreDuringBuilds: true,
-  },
-};
+  turbopack: { root: process.cwd() },
+} satisfies NextConfig;
 
 export default nextConfig;

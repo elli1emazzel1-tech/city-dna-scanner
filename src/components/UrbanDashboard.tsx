@@ -1,78 +1,69 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useState, useSyncExternalStore } from 'react';
-import { 
-  Droplets, 
-  Sun, 
-  AlertCircle, 
-  MapPin, 
-  ShieldAlert, 
-  Globe, 
-  TrendingUp,
-  CheckCircle2,
-  Clock,
-  Navigation,
+import dynamic from 'next/dynamic';
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import ProfessionalDashboard from './dashboard/ProfessionalDashboard';
+import DashboardShell from './dashboard/DashboardShell';
+import { useCitySelection } from './dashboard/CitySelectionProvider';
+import { useCityEnvironmentalData } from './dashboard/useCityEnvironmentalData';
+import CityComparison from './dashboard/CityComparison';
+import HistoricalTemperatureChart from './dashboard/HistoricalTemperatureChart';
+import { defaultMapLayers, setMapLayer } from '../lib/maps/layers';
+import { isOpenWeatherCityResult } from '../lib/data/openWeather';
+import type { City, CityEnvironmentalData, EnvironmentalMetric, MapLayerId, WeatherData } from '../lib/data/types';
+
+const InteractiveCityMap = dynamic(() => import('./map/InteractiveCityMap'), {
+  ssr: false,
+  loading: () => <div className="flex h-64 items-center justify-center rounded-lg bg-[#0b1725] text-xs text-slate-500">Loading geographic map…</div>,
+});
+import {
+  Droplets,
+  Sun,
+  AlertCircle,
+  MapPin,
+  ShieldAlert,
+  Globe,
   Search,
   Activity,
   Wind,
   Trees,
   Volume2,
   Flame,
-  LayoutDashboard,
   FileText,
-  GitCompare,
   BookmarkCheck,
-  Info
 } from 'lucide-react';
 
 interface CityMapProps {
-  selectedCity: string;
-  airQualityIndex: number;
+  city: City;
+  data?: CityEnvironmentalData;
 }
 
-const CityMap: React.FC<CityMapProps> = ({ selectedCity, airQualityIndex }) => (
-  <div className="w-full h-64 rounded-2xl bg-[#131B2E] border border-slate-800 flex items-center justify-center relative overflow-hidden">
-    <div className="absolute inset-0 bg-[radial-gradient(#22FFAA_1px,transparent_1px)] [background-size:16px_16px] opacity-10"></div>
-    <div className="text-center z-10">
-      <span className="text-xs font-mono text-[#22FFAA] block mb-1">Active Sector: {selectedCity || "Awaiting City Input"}</span>
-      <p className="text-sm font-bold text-white">Telemetry AQI Index: {selectedCity ? airQualityIndex : '--'}</p>
+const CityMap: React.FC<CityMapProps> = ({ city, data }) => {
+  const [layers, setLayers] = useState(defaultMapLayers);
+  return (
+    <div className="relative">
+      <div className="pointer-events-none absolute left-3 top-3 z-[600] rounded bg-[#071321]/90 px-2 py-1 text-[9px] text-slate-200">
+        {city.name} · geocoded city centre
+      </div>
+      <InteractiveCityMap
+        city={city}
+        layers={layers}
+        onToggleLayer={(id: MapLayerId) => setLayers((current) => setMapLayer(current, id))}
+        data={data}
+      />
     </div>
-  </div>
-);
+  );
+};
 
 interface HazardReport {
-  id: number;
+  id: string;
+  cityId: string;
   type: string;
   location: string;
   severity: 'Low' | 'Medium' | 'High' | 'Critical';
-  status: 'Pending' | 'In Progress' | 'Dispatched' | 'Resolved';
-  date: string;
-  coords: { x: string; y: string };
-}
-
-interface Recommendation {
-  id: number;
-  category: string;
-  title: string;
-  impact: string;
-  status: string;
-}
-
-interface CleanCity {
-  rank: number;
-  city: string;
-  country: string;
-  score: number;
-  change: string;
-}
-
-interface TimelineItem {
-  year: string;
-  score: string;
-  height: string;
-  isHighlighted?: boolean;
-  isForecast?: boolean;
+  status: 'Submitted';
+  reportedAt: string;
 }
 
 type DashboardSection =
@@ -82,61 +73,144 @@ type DashboardSection =
   | 'timeline'
   | 'recommendations'
   | 'saved'
-  | 'about';
+  | 'about'
+  | 'simulation'
+  | 'alerts';
 
 interface UrbanDashboardProps {
   section: DashboardSection;
+  legacyMode?: boolean;
 }
 
 interface SavedReport {
-  id: number;
+  id: string;
   city: string;
+  cityId: string;
   savedAt: string;
-  airQualityIndex: number;
-  waterPurityScore: number;
-  greenCanopyIndex: number;
-  carbonEmissionRate: number;
+  vectors: CityProfile;
+  weather?: WeatherData;
+}
+
+interface CityMetric {
+  value: string;
+  unit: string;
+  detail: string;
+  source: string;
+  status: EnvironmentalMetric['status'];
+  updated: string | null;
+}
+
+interface CityProfile {
+  airQuality: CityMetric;
+  waterQuality: CityMetric;
+  greenCover: CityMetric;
+  greenhouseGas: CityMetric;
+  noise: CityMetric;
+}
+
+function isCityMetric(value: unknown): value is CityMetric {
+  if (typeof value !== 'object' || value === null) return false;
+  const metric = value as Record<string, unknown>;
+  const validStatuses = ['OBSERVED', 'FORECAST', 'HISTORICAL', 'MODELLED', 'SIMULATED', 'REPORTED', 'CONNECTED', 'ERROR', 'UNAVAILABLE'];
+  return typeof metric.value === 'string'
+    && typeof metric.unit === 'string'
+    && typeof metric.detail === 'string'
+    && typeof metric.source === 'string'
+    && typeof metric.status === 'string'
+    && validStatuses.includes(metric.status)
+    && (metric.updated === null || typeof metric.updated === 'string');
+}
+
+function isCityProfile(value: unknown): value is CityProfile {
+  if (typeof value !== 'object' || value === null) return false;
+  const profile = value as Record<string, unknown>;
+  return isCityMetric(profile.airQuality)
+    && isCityMetric(profile.waterQuality)
+    && isCityMetric(profile.greenCover)
+    && isCityMetric(profile.greenhouseGas)
+    && isCityMetric(profile.noise);
+}
+
+function isWeatherData(value: unknown): value is WeatherData {
+  if (typeof value !== 'object' || value === null) return false;
+  const weather = value as Record<string, unknown>;
+  const validStatuses = ['OBSERVED', 'FORECAST', 'HISTORICAL', 'MODELLED', 'SIMULATED', 'REPORTED', 'CONNECTED', 'ERROR', 'UNAVAILABLE'];
+  return (weather.temperature === null || (typeof weather.temperature === 'number' && Number.isFinite(weather.temperature)))
+    && (weather.apparentTemperature === undefined || weather.apparentTemperature === null || (typeof weather.apparentTemperature === 'number' && Number.isFinite(weather.apparentTemperature)))
+    && (weather.soilMoisture === undefined || weather.soilMoisture === null || (typeof weather.soilMoisture === 'number' && Number.isFinite(weather.soilMoisture) && weather.soilMoisture >= 0 && weather.soilMoisture <= 1))
+    && (weather.humidity === null || (typeof weather.humidity === 'number' && Number.isFinite(weather.humidity) && weather.humidity >= 0 && weather.humidity <= 100))
+    && (weather.windSpeed === null || (typeof weather.windSpeed === 'number' && Number.isFinite(weather.windSpeed) && weather.windSpeed >= 0))
+    && (weather.condition === null || typeof weather.condition === 'string')
+    && typeof weather.status === 'string'
+    && validStatuses.includes(weather.status)
+    && typeof weather.source === 'string'
+    && (weather.updated === null || typeof weather.updated === 'string')
+    && (weather.error === undefined || typeof weather.error === 'string');
 }
 
 function isSavedReport(value: unknown): value is SavedReport {
   if (typeof value !== 'object' || value === null) return false;
 
   const report = value as Record<string, unknown>;
-  return typeof report.id === 'number'
+  return typeof report.id === 'string'
     && typeof report.city === 'string'
+    && typeof report.cityId === 'string'
     && typeof report.savedAt === 'string'
-    && typeof report.airQualityIndex === 'number'
-    && typeof report.waterPurityScore === 'number'
-    && typeof report.greenCanopyIndex === 'number'
-    && typeof report.carbonEmissionRate === 'number';
+    && Number.isFinite(Date.parse(report.savedAt))
+    && isCityProfile(report.vectors)
+    && (report.weather === undefined || isWeatherData(report.weather));
 }
 
-const savedReportsStorageKey = 'city-dna-saved-reports';
+function isHazardReport(value: unknown): value is HazardReport {
+  if (typeof value !== 'object' || value === null) return false;
+  const report = value as Record<string, unknown>;
+  return typeof report.id === 'string'
+    && typeof report.cityId === 'string'
+    && typeof report.type === 'string'
+    && typeof report.location === 'string'
+    && ['Low', 'Medium', 'High', 'Critical'].includes(String(report.severity))
+    && report.status === 'Submitted'
+    && typeof report.reportedAt === 'string'
+    && Number.isFinite(Date.parse(report.reportedAt));
+}
+
+const savedReportsStorageKey = 'city-dna-saved-reports-v2';
 const emptySavedReports: SavedReport[] = [];
+interface SavedReportsSnapshot {
+  reports: SavedReport[];
+  error: string;
+}
+const emptySavedReportsSnapshot: SavedReportsSnapshot = { reports: emptySavedReports, error: '' };
 const savedReportsListeners = new Set<() => void>();
 let cachedSavedReportsRaw: string | null | undefined;
-let cachedSavedReports: SavedReport[] = emptySavedReports;
+let cachedSavedReportsSnapshot = emptySavedReportsSnapshot;
 
-function getSavedReportsSnapshot(): SavedReport[] {
-  const rawReports = window.localStorage.getItem(savedReportsStorageKey);
-  if (rawReports === cachedSavedReportsRaw) return cachedSavedReports;
-
-  cachedSavedReportsRaw = rawReports;
-  if (!rawReports) {
-    cachedSavedReports = emptySavedReports;
-    return cachedSavedReports;
-  }
-
+function getSavedReportsSnapshot(): SavedReportsSnapshot {
   try {
+    const rawReports = window.localStorage.getItem(savedReportsStorageKey);
+    if (rawReports === cachedSavedReportsRaw) return cachedSavedReportsSnapshot;
+    cachedSavedReportsRaw = rawReports;
+    if (!rawReports) {
+      cachedSavedReportsSnapshot = emptySavedReportsSnapshot;
+      return cachedSavedReportsSnapshot;
+    }
     const parsedReports: unknown = JSON.parse(rawReports);
-    cachedSavedReports = Array.isArray(parsedReports)
-      ? parsedReports.filter(isSavedReport)
-      : emptySavedReports;
+    if (!Array.isArray(parsedReports)) throw new Error('Saved reports have an invalid format.');
+    const reports = parsedReports.filter(isSavedReport);
+    cachedSavedReportsSnapshot = {
+      reports,
+      error: reports.length === parsedReports.length ? '' : 'Some saved reports could not be read because their stored data is invalid.',
+    };
   } catch (error) {
     console.error('Could not load saved city reports.', error);
-    cachedSavedReports = emptySavedReports;
+    if (!cachedSavedReportsSnapshot.error) {
+      cachedSavedReportsSnapshot = {
+        reports: emptySavedReports,
+        error: 'Saved reports could not be read from this browser.',
+      };
+    }
   }
-  return cachedSavedReports;
+  return cachedSavedReportsSnapshot;
 }
 
 function subscribeToSavedReports(listener: () => void) {
@@ -152,218 +226,294 @@ function notifySavedReportsChanged() {
   savedReportsListeners.forEach((listener) => listener());
 }
 
-const navigationItems: {
-  id: DashboardSection;
-  label: string;
-  href: string;
-  icon: typeof LayoutDashboard;
-}[] = [
-  { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { id: 'report', label: 'City Report', href: '/city-report', icon: FileText },
-  { id: 'compare', label: 'Compare Cities', href: '/compare-cities', icon: GitCompare },
-  { id: 'timeline', label: 'Timeline', href: '/timeline', icon: TrendingUp },
-  { id: 'recommendations', label: 'Recommendations', href: '/recommendations', icon: ShieldAlert },
-  { id: 'saved', label: 'Saved Reports', href: '/saved-reports', icon: BookmarkCheck },
-  { id: 'about', label: 'About', href: '/about', icon: Info },
+function storeSavedReports(reports: SavedReport[]) {
+  const serialized = JSON.stringify(reports);
+  window.localStorage.setItem(savedReportsStorageKey, serialized);
+  cachedSavedReportsRaw = serialized;
+  cachedSavedReportsSnapshot = { reports, error: '' };
+  notifySavedReportsChanged();
+}
+
+const hazardReportsStorageKey = 'city-dna-hazard-reports-v1';
+const emptyHazardReports: HazardReport[] = [];
+interface HazardReportsSnapshot {
+  reports: HazardReport[];
+  error: string;
+}
+const emptyHazardReportsSnapshot: HazardReportsSnapshot = { reports: emptyHazardReports, error: '' };
+const hazardReportListeners = new Set<() => void>();
+let cachedHazardReportsRaw: string | null | undefined;
+let cachedHazardReportsSnapshot = emptyHazardReportsSnapshot;
+
+function getHazardReportsSnapshot(): HazardReportsSnapshot {
+  try {
+    const rawReports = window.localStorage.getItem(hazardReportsStorageKey);
+    if (rawReports === cachedHazardReportsRaw) return cachedHazardReportsSnapshot;
+    cachedHazardReportsRaw = rawReports;
+    if (!rawReports) {
+      cachedHazardReportsSnapshot = emptyHazardReportsSnapshot;
+      return cachedHazardReportsSnapshot;
+    }
+    const parsed: unknown = JSON.parse(rawReports);
+    if (!Array.isArray(parsed)) throw new Error('Saved hazard reports have an invalid format.');
+    const reports = parsed.filter(isHazardReport);
+    cachedHazardReportsSnapshot = {
+      reports,
+      error: reports.length === parsed.length ? '' : 'Some hazard reports were ignored because their stored data is invalid.',
+    };
+  } catch (error) {
+    console.error('Could not read hazard reports from browser storage.', error);
+    if (!cachedHazardReportsSnapshot.error) {
+      cachedHazardReportsSnapshot = {
+        reports: emptyHazardReports,
+        error: 'Hazard reports could not be read from this browser.',
+      };
+    }
+  }
+  return cachedHazardReportsSnapshot;
+}
+
+function subscribeToHazardReports(listener: () => void) {
+  hazardReportListeners.add(listener);
+  window.addEventListener('storage', listener);
+  window.addEventListener('city-dna-hazards-change', listener);
+  return () => {
+    hazardReportListeners.delete(listener);
+    window.removeEventListener('storage', listener);
+    window.removeEventListener('city-dna-hazards-change', listener);
+  };
+}
+
+function saveHazardReports(reports: HazardReport[]) {
+  try {
+    const serialized = JSON.stringify(reports);
+    window.localStorage.setItem(hazardReportsStorageKey, serialized);
+    cachedHazardReportsRaw = serialized;
+    cachedHazardReportsSnapshot = { reports, error: '' };
+    hazardReportListeners.forEach((listener) => listener());
+    return true;
+  } catch (error) {
+    console.error('Could not save a hazard report in this browser.', error);
+    return false;
+  }
+}
+
+const savedVectorNames: { label: string; key: keyof CityProfile }[] = [
+  { label: 'Air quality', key: 'airQuality' },
+  { label: 'Water quality', key: 'waterQuality' },
+  { label: 'Mapped vegetation features', key: 'greenCover' },
+  { label: 'Greenhouse gases', key: 'greenhouseGas' },
+  { label: 'Environmental noise', key: 'noise' },
 ];
 
-export default function UrbanDashboard({ section }: UrbanDashboardProps) {
+function metricToSavedValue(metric: EnvironmentalMetric): CityMetric {
+  return {
+    value: metric.value,
+    unit: metric.unit,
+    detail: metric.error ?? metric.subValue,
+    source: metric.source,
+    status: metric.status,
+    updated: metric.updated,
+  };
+}
+
+function createCityProfile(data: CityEnvironmentalData): CityProfile {
+  const find = (id: EnvironmentalMetric['id']) => {
+    const metric = data.metrics.find((item) => item.id === id);
+    if (!metric) throw new Error(`Missing normalized metric ${id}.`);
+    return metricToSavedValue(metric);
+  };
+  return {
+    airQuality: find('air'),
+    waterQuality: find('water'),
+    greenCover: find('green'),
+    greenhouseGas: find('carbon'),
+    noise: find('noise'),
+  };
+}
+
+function LegacyDashboard({ section, embedded = false }: { section: DashboardSection; embedded?: boolean }) {
+  const { city: globalCity, setCity: setGlobalCity, measurementSystem } = useCitySelection();
+  const { data: cityData, isLoading: isProfileLoading } = useCityEnvironmentalData(globalCity);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedCity, setSelectedCity] = useState<string>('');
-  const [countryCode, setCountryCode] = useState<string>('');
+  const [citySearchError, setCitySearchError] = useState<string>('');
+  const selectedCity = globalCity.name;
+  const countryCode = globalCity.countryCode;
   const [isScanning, setIsScanning] = useState<boolean>(false);
+  const scanController = useRef<AbortController | null>(null);
 
-  // Vector Metrics States
-  const [airQualityIndex, setAirQualityIndex] = useState<number>(47);
-  const [waterPurityScore, setWaterPurityScore] = useState<number>(88);
-  const [greenCanopyIndex, setGreenCanopyIndex] = useState<number>(34);
-  const [carbonEmissionRate, setCarbonEmissionRate] = useState<number>(412);
-  const [noisePollutionLevel, setNoisePollutionLevel] = useState<number>(62);
+  // These are scenario inputs only; no validated impact model is connected.
+  const [treeCoverage, setTreeCoverage] = useState<number>(0);
+  const [whiteRoof, setWhiteRoof] = useState<number>(0);
+  const [industrialCap, setIndustrialCap] = useState<number>(0);
 
-  // UHI Simulator States
-  const [treeCoverage, setTreeCoverage] = useState<number>(25);
-  const [whiteRoof, setWhiteRoof] = useState<number>(30);
-  const [industrialCap, setIndustrialCap] = useState<number>(15);
-
-  // Hazard Reporting State
   const [newHazardType, setNewHazardType] = useState<string>('Illegal Dumping');
   const [newHazardLocation, setNewHazardLocation] = useState<string>('');
   const [newHazardSeverity, setNewHazardSeverity] = useState<'Low' | 'Medium' | 'High' | 'Critical'>('High');
   const [activeFilter, setActiveFilter] = useState<string>('All');
-  
-  const [reports, setReports] = useState<HazardReport[]>([
-    { id: 1, type: 'Illegal Dumping', location: 'District 4 Industrial Zone', severity: 'High', status: 'Pending', date: 'Aug 18, 2026', coords: { x: '45%', y: '60%' } },
-    { id: 2, type: 'Clogged Drainage', location: 'Sector 7 Market', severity: 'Medium', status: 'In Progress', date: 'Aug 18, 2026', coords: { x: '72%', y: '30%' } },
-  ]);
-  const savedReports = useSyncExternalStore(
+  const hazardSnapshot = useSyncExternalStore(subscribeToHazardReports, getHazardReportsSnapshot, () => emptyHazardReportsSnapshot);
+  const reports = hazardSnapshot.reports;
+  const [hazardStorageError, setHazardStorageError] = useState('');
+  const [reportMessage, setReportMessage] = useState('');
+  const savedReportsSnapshot = useSyncExternalStore(
     subscribeToSavedReports,
     getSavedReportsSnapshot,
-    () => emptySavedReports,
+    () => emptySavedReportsSnapshot,
   );
+  const savedReports = savedReportsSnapshot.reports;
 
-  // Flood Predictor States
-  const [rainfall, setRainfall] = useState<number>(15);
-  const [drainageCapacity, setDrainageCapacity] = useState<number>(85);
+  // These are hypothetical input values, not rainfall observations or drainage measurements.
+  const [rainfall, setRainfall] = useState<number>(0);
+  const [drainageCapacity, setDrainageCapacity] = useState<number>(0);
 
-  const [recommendations] = useState<Recommendation[]>([
-    { id: 1, category: 'Energy', title: 'Expand smart-grid rooftop solar incentives in primary sector', impact: '+4.2% Efficiency', status: 'Ready' },
-    { id: 2, category: 'Water', title: 'Deploy bio-filtration buffers near stormwater runoff canals', impact: '-12% Contaminants', status: 'In Progress' }
-  ]);
+  const selectedCityProfile = isProfileLoading ? undefined : createCityProfile(cityData);
+  const hasReportableData = cityData.weather.status !== 'UNAVAILABLE'
+    || cityData.metrics.some((metric) => metric.status !== 'UNAVAILABLE');
 
-  const [cleanestCities] = useState<CleanCity[]>([
-    { rank: 1, city: 'Helsinki', country: 'Finland', score: 98.4, change: '+1.2%' },
-    { rank: 2, city: 'Zürich', country: 'Switzerland', score: 97.9, change: '+0.8%' },
-    { rank: 3, city: 'Reykjavík', country: 'Iceland', score: 96.5, change: '+1.5%' },
-    { rank: 4, city: 'Vienna', country: 'Austria', score: 95.8, change: '+0.4%' },
-    { rank: 5, city: 'Singapore', country: 'Singapore', score: 94.7, change: '+2.1%' }
-  ]);
+  useEffect(() => () => scanController.current?.abort(), []);
 
-  const [timelineData] = useState<TimelineItem[]>([
-    { year: '2018', score: '62.0', height: '60%' },
-    { year: '2020', score: '68.4', height: '68%' },
-    { year: '2022', score: '75.1', height: '75%' },
-    { year: '2024', score: '82.9', height: '83%', isHighlighted: true },
-    { year: '2026', score: '89.2', height: '89%' },
-    { year: '2028', score: '93.5', height: '93%', isForecast: true },
-    { year: '2030', score: '97.0', height: '97%', isForecast: true }
-  ]);
-
-  const handleCityScan = (e: React.FormEvent) => {
+  const handleCityScan = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim()) return;
-
-    setIsScanning(true);
     const query = searchQuery.trim();
-    const lowerQuery = query.toLowerCase();
-
-    if (lowerQuery.includes('mumbai') || lowerQuery.includes('delhi') || lowerQuery.includes('india')) {
-      setCountryCode('IN');
-    } else if (lowerQuery.includes('new york') || lowerQuery.includes('chicago') || lowerQuery.includes('usa')) {
-      setCountryCode('US');
-    } else if (lowerQuery.includes('london') || lowerQuery.includes('uk')) {
-      setCountryCode('GB');
-    } else if (lowerQuery.includes('tokyo') || lowerQuery.includes('japan')) {
-      setCountryCode('JP');
-    } else {
-      setCountryCode('INT');
+    if (!query) {
+      setCitySearchError('Enter a city name to search.');
+      return;
     }
 
-    setTimeout(() => {
-      setSelectedCity(query);
-      setAirQualityIndex(Math.floor(Math.random() * 60) + 25);
-      setWaterPurityScore(Math.floor(Math.random() * 25) + 75);
-      setGreenCanopyIndex(Math.floor(Math.random() * 40) + 20);
-      setCarbonEmissionRate(Math.floor(Math.random() * 200) + 300);
-      setIsScanning(false);
+    scanController.current?.abort();
+    const controller = new AbortController();
+    scanController.current = controller;
+    setCitySearchError('');
+    setIsScanning(true);
+    try {
+      const response = await fetch('/api/openweather/air-quality', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ city: query }),
+        signal: controller.signal,
+      });
+      const payload: unknown = await response.json();
+      if (controller.signal.aborted) return;
+      if (!response.ok) {
+        const message = typeof payload === 'object' && payload !== null
+          && 'error' in payload && typeof payload.error === 'string'
+          ? payload.error
+          : `City "${query}" was not recognized.`;
+        setCitySearchError(response.status === 404 ? `City "${query}" was not recognized.` : message);
+        return;
+      }
+      if (!isOpenWeatherCityResult(payload)) throw new Error('OpenWeather returned invalid city or air-quality data.');
+      setGlobalCity(payload.city, payload.airQuality);
       setSearchQuery('');
-    }, 1200);
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      console.error('City lookup failed in the report scan.', error);
+      setCitySearchError(error instanceof Error ? error.message : 'City lookup failed. Please retry.');
+    } finally {
+      if (!controller.signal.aborted) setIsScanning(false);
+    }
   };
 
   const handleAddHazard = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newHazardLocation.trim()) return;
 
-    const randomX = `${Math.floor(Math.random() * 75 + 15)}%`;
-    const randomY = `${Math.floor(Math.random() * 60 + 20)}%`;
-
     const newReport: HazardReport = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
+      cityId: globalCity.id,
       type: newHazardType,
       location: newHazardLocation,
       severity: newHazardSeverity,
-      status: 'Pending',
-      date: 'Aug 29, 2026',
-      coords: { x: randomX, y: randomY }
+      status: 'Submitted',
+      reportedAt: new Date().toISOString(),
     };
 
-    setReports([newReport, ...reports]);
-    setNewHazardLocation('');
+    if (saveHazardReports([newReport, ...reports])) {
+      setHazardStorageError('');
+      setNewHazardLocation('');
+    } else {
+      setHazardStorageError('Hazard report could not be saved in this browser.');
+    }
   };
 
+  const cityReports = reports.filter((report) => report.cityId === globalCity.id);
   const filteredReports = activeFilter === 'All' 
-    ? reports 
-    : reports.filter(r => r.status === activeFilter || r.severity === activeFilter);
+    ? cityReports
+    : cityReports.filter((report) => report.severity === activeFilter);
 
   const saveCityReport = () => {
-    if (!selectedCity) return;
+    if (!selectedCityProfile || !hasReportableData) return;
 
     const savedReport: SavedReport = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       city: selectedCity,
-      savedAt: new Date().toLocaleDateString(),
-      airQualityIndex,
-      waterPurityScore,
-      greenCanopyIndex,
-      carbonEmissionRate,
+      cityId: globalCity.id,
+      savedAt: new Date().toISOString(),
+      vectors: selectedCityProfile,
+      weather: cityData.weather,
     };
     try {
-      window.localStorage.setItem(savedReportsStorageKey, JSON.stringify([savedReport, ...savedReports]));
-      notifySavedReportsChanged();
+      storeSavedReports([savedReport, ...savedReports]);
+      setReportMessage(`Source snapshot saved for ${selectedCity}.`);
     } catch (error) {
       console.error('Could not save the city report.', error);
-      window.alert('The report could not be saved in this browser.');
+      setReportMessage('The report could not be saved in this browser.');
+    }
+  };
+
+  const removeSavedReport = (reportId: string) => {
+    try {
+      const remaining = savedReports.filter((report) => report.id !== reportId);
+      storeSavedReports(remaining);
+      setReportMessage('Saved report removed.');
+    } catch (error) {
+      console.error('Could not remove the saved city report.', error);
+      setReportMessage('The saved report could not be removed from this browser.');
+    }
+  };
+
+  const exportCityReport = () => {
+    try {
+      const report = {
+        schemaVersion: 1,
+        generatedAt: new Date().toISOString(),
+        city: globalCity,
+        weather: cityData.weather,
+        metrics: cityData.metrics,
+        note: 'Modelled current conditions are not station observations. UNAVAILABLE metrics have no connected source.',
+      };
+
+      const file = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `dna-city-${globalCity.id}-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setReportMessage(`JSON data export created for ${selectedCity}.`);
+    } catch (error) {
+      console.error('Could not export the city data report.', error);
+      setReportMessage('The report export failed in this browser.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#060911] text-slate-100 flex font-sans">
-      
-      {/* SIDEBAR NAVIGATION */}
-      <aside className="w-64 border-r border-slate-800/80 bg-[#0B0F1A]/90 p-6 hidden lg:flex flex-col justify-between shrink-0">
-        <div className="space-y-8">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-7 h-7 rounded-xl bg-[#22FFAA]/20 border border-[#22FFAA]/40 flex items-center justify-center text-[#22FFAA]">
-                <Globe className="w-4 h-4" />
-              </div>
-              <span className="font-extrabold text-white tracking-wider text-sm">DNA · City</span>
-            </div>
-            <span className="text-[10px] font-mono text-[#22FFAA] uppercase tracking-wider block pl-9">Urban Intelligence Engine</span>
-          </div>
-
-          <nav className="space-y-1">
-            {navigationItems.map(({ id, label, href, icon: Icon }) => (
-              <Link
-                key={id}
-                href={href}
-                aria-current={section === id ? 'page' : undefined}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition ${section === id ? 'bg-[#22FFAA]/10 text-[#22FFAA] border border-[#22FFAA]/20' : 'text-slate-400 hover:text-white hover:bg-slate-900/50'}`}
-              >
-                <Icon className="w-4 h-4" /> {label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-
-        <div className="p-3.5 rounded-2xl bg-[#131B2E] border border-slate-800 text-xs space-y-2">
-          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-            <span>Neural Telemetry</span>
-            <span className="text-[#22FFAA]">v4.6.2</span>
-          </div>
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-slate-300">Nodes Active</span>
-            <span className="font-mono text-white">2,410</span>
-          </div>
-          <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
-            <div className="bg-[#22FFAA] h-full w-[99.9%]"></div>
-          </div>
-        </div>
-      </aside>
+    <div className={`${embedded ? 'bg-transparent text-slate-100' : 'min-h-screen bg-[#060911] text-slate-100 flex'} font-sans`}>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto">
+      <main className={embedded ? 'space-y-5' : 'flex-1 p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto'}>
         
         {/* TOP STATUS HEADER */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs font-mono border-b border-slate-800/80 pb-4">
+        {!embedded && <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs font-mono border-b border-slate-800/80 pb-4">
           <div className="flex items-center gap-2">
             <span className="text-[#22FFAA]">Active Region:</span>
             <span className="text-white font-bold">{selectedCity ? `${selectedCity}${countryCode ? `, ${countryCode}` : ''}` : 'None Selected'}</span>
           </div>
           <div className="text-slate-400">
-            {selectedCity ? 'All biological & geospatial sensors synchronized successfully' : 'Awaiting initialization via city scan'}
+            {isProfileLoading ? 'Loading city-specific provider data' : 'Provider data status shown per indicator'}
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-slate-400">Timestamp: Aug 29, 2026 - 23:05 UTC</span>
+            <span className="text-slate-400">No composite score or complete city inventory is available</span>
             {section === 'report' && selectedCity && (
               <button
                 onClick={saveCityReport}
@@ -373,34 +523,21 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
               </button>
             )}
             <button 
-              onClick={() => alert("Full audit report exported successfully.")}
+              onClick={exportCityReport}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#22FFAA]/10 border border-[#22FFAA]/30 text-[#22FFAA] hover:bg-[#22FFAA]/20 transition"
             >
               Export Audit
             </button>
           </div>
-        </div>
-
-        <nav aria-label="Main navigation" className="lg:hidden flex gap-2 overflow-x-auto pb-1">
-          {navigationItems.map(({ id, label, href }) => (
-            <Link
-              key={id}
-              href={href}
-              aria-current={section === id ? 'page' : undefined}
-              className={`shrink-0 rounded-xl border px-3 py-2 text-xs ${section === id ? 'border-[#22FFAA]/30 bg-[#22FFAA]/10 text-[#22FFAA]' : 'border-slate-800 text-slate-400'}`}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
+        </div>}
 
         {/* HERO SEARCH SECTION */}
         {(section === 'dashboard' || section === 'report' || section === 'compare') && (
         <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl shadow-xl space-y-4">
           <div className="space-y-1">
             <span className="text-[10px] font-mono text-[#22FFAA] uppercase tracking-wider block">Intelligent Insights. Healthier Cities.</span>
-            <h1 className="text-2xl font-extrabold text-white tracking-tight">Decode Cities with AI Intelligence</h1>
-            <p className="text-xs text-slate-400">Analyze environmental health, simulate urban climate interventions, report civic hazards, and predict extreme weather patterns in real-time.</p>
+            <h1 className="text-2xl font-extrabold text-white tracking-tight">City environmental report</h1>
+            <p className="text-xs text-slate-400">Review source-backed city indicators, explore location context, submit local hazard reports, and configure scenario inputs.</p>
           </div>
 
           <form onSubmit={handleCityScan} className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -408,9 +545,18 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input 
                 type="text" 
+                maxLength={120}
                 placeholder="Search any city, e.g., Tokyo, London, Singapore..." 
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  scanController.current?.abort();
+                  scanController.current = null;
+                  setIsScanning(false);
+                  setSearchQuery(e.target.value);
+                  setCitySearchError('');
+                }}
+                aria-invalid={Boolean(citySearchError)}
+                aria-describedby={citySearchError ? 'city-search-error' : undefined}
                 className="w-full bg-[#131B2E] border border-slate-800 text-xs text-white pl-10 pr-4 py-3 rounded-xl outline-none placeholder:text-slate-500 focus:border-[#22FFAA] transition"
               />
             </div>
@@ -419,9 +565,14 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
               disabled={isScanning}
               className="px-6 py-3 rounded-xl bg-[#22FFAA] text-slate-950 font-bold text-xs hover:bg-[#1edb95] transition flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {isScanning ? 'Scanning...' : 'Scan City'}
+              {isScanning ? 'Searching…' : 'Find City'}
             </button>
           </form>
+          {citySearchError && (
+            <p id="city-search-error" role="alert" className="text-sm text-rose-400">
+              {citySearchError}
+            </p>
+          )}
         </div>
         )}
 
@@ -433,8 +584,8 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
                 <Activity className="w-4 h-4 text-[#22FFAA]" />
                 5 Core Ecological Vectors · {selectedCity.toUpperCase()}
               </h2>
-              <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-xl">
-                All Systems Normal
+              <span className="text-xs font-mono text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-xl">
+                Provider-backed values and unavailable sources are identified per indicator
               </span>
             </div>
 
@@ -446,11 +597,12 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
                     <span className="text-[10px] font-mono">VECTOR</span>
                   </div>
                   <span className="text-xs text-slate-400 block mb-1">Air Quality</span>
-                  <div className="text-2xl font-extrabold text-white font-mono">{airQualityIndex} <span className="text-xs font-normal text-slate-400">AQI</span></div>
+                  <span className="block text-[10px] leading-relaxed text-[#22FFAA]">{selectedCityProfile?.airQuality.source ?? 'Loading provider…'}</span>
+                  <div className="mt-3 text-base font-bold leading-snug text-white">{selectedCityProfile ? `${selectedCityProfile.airQuality.value} ${selectedCityProfile.airQuality.unit}` : 'Loading…'}</div>
+                  <p className="mt-2 text-[10px] leading-relaxed text-slate-400">{selectedCityProfile?.airQuality.detail}</p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
-                  <span className="text-emerald-400">Improving ↗</span>
-                  <div className="w-3 h-3 rounded-full bg-[#22FFAA]"></div>
+                <div className="mt-4 border-t border-slate-800/60 pt-3 text-[10px] text-slate-500">
+                  {selectedCityProfile?.airQuality.status ?? 'LOADING'} · {selectedCityProfile?.airQuality.updated ?? 'Provider time unavailable'}
                 </div>
               </div>
 
@@ -460,12 +612,13 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
                     <Droplets className="w-4 h-4 text-cyan-400" />
                     <span className="text-[10px] font-mono">VECTOR</span>
                   </div>
-                  <span className="text-xs text-slate-400 block mb-1">Water Purity</span>
-                  <div className="text-2xl font-extrabold text-white font-mono">{waterPurityScore} <span className="text-xs font-normal text-slate-400">/100</span></div>
+                  <span className="text-xs text-slate-400 block mb-1">Water Quality</span>
+                  <span className="block text-[10px] leading-relaxed text-cyan-300">{selectedCityProfile?.waterQuality.source ?? 'Loading provider…'}</span>
+                  <div className="mt-3 text-base font-bold leading-snug text-white">{selectedCityProfile ? `${selectedCityProfile.waterQuality.value} ${selectedCityProfile.waterQuality.unit}` : 'Loading…'}</div>
+                  <p className="mt-2 text-[10px] leading-relaxed text-slate-400">{selectedCityProfile?.waterQuality.detail}</p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
-                  <span className="text-cyan-400">Stable →</span>
-                  <div className="w-3 h-3 rounded-full bg-cyan-400"></div>
+                <div className="mt-4 border-t border-slate-800/60 pt-3 text-[10px] text-slate-500">
+                  {selectedCityProfile?.waterQuality.status ?? 'LOADING'} · {selectedCityProfile?.waterQuality.updated ?? 'Provider time unavailable'}
                 </div>
               </div>
 
@@ -475,12 +628,13 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
                     <Trees className="w-4 h-4 text-emerald-400" />
                     <span className="text-[10px] font-mono">VECTOR</span>
                   </div>
-                  <span className="text-xs text-slate-400 block mb-1">Green Canopy Density</span>
-                  <div className="text-2xl font-extrabold text-white font-mono">{greenCanopyIndex}%</div>
+                  <span className="text-xs text-slate-400 block mb-1">Mapped Vegetation Features</span>
+                  <span className="block text-[10px] leading-relaxed text-emerald-300">{selectedCityProfile?.greenCover.source ?? 'Loading provider…'}</span>
+                  <div className="mt-3 text-base font-bold leading-snug text-white">{selectedCityProfile ? `${selectedCityProfile.greenCover.value} ${selectedCityProfile.greenCover.unit}` : 'Loading…'}</div>
+                  <p className="mt-2 text-[10px] leading-relaxed text-slate-400">{selectedCityProfile?.greenCover.detail}</p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">Target: 40%</span>
-                  <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+                <div className="mt-4 border-t border-slate-800/60 pt-3 text-[10px] text-slate-500">
+                  {selectedCityProfile?.greenCover.status ?? 'LOADING'} · {selectedCityProfile?.greenCover.updated ?? 'Provider time unavailable'}
                 </div>
               </div>
 
@@ -490,12 +644,13 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
                     <Flame className="w-4 h-4 text-amber-400" />
                     <span className="text-[10px] font-mono">VECTOR</span>
                   </div>
-                  <span className="text-xs text-slate-400 block mb-1">Carbon Output Rate</span>
-                  <div className="text-2xl font-extrabold text-white font-mono">{carbonEmissionRate} <span className="text-xs font-normal text-slate-400">kt/mo</span></div>
+                  <span className="text-xs text-slate-400 block mb-1">Greenhouse Gas Emissions</span>
+                  <span className="block text-[10px] leading-relaxed text-amber-300">{selectedCityProfile?.greenhouseGas.source ?? 'Loading provider…'}</span>
+                  <div className="mt-3 text-base font-bold leading-snug text-white">{selectedCityProfile ? `${selectedCityProfile.greenhouseGas.value} ${selectedCityProfile.greenhouseGas.unit}` : 'Loading…'}</div>
+                  <p className="mt-2 text-[10px] leading-relaxed text-slate-400">{selectedCityProfile?.greenhouseGas.detail}</p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
-                  <span className="text-amber-400">-8.4% YoY</span>
-                  <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                <div className="mt-4 border-t border-slate-800/60 pt-3 text-[10px] text-slate-500">
+                  {selectedCityProfile?.greenhouseGas.status ?? 'LOADING'} · {selectedCityProfile?.greenhouseGas.updated ?? 'Provider time unavailable'}
                 </div>
               </div>
 
@@ -505,12 +660,13 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
                     <Volume2 className="w-4 h-4 text-rose-400" />
                     <span className="text-[10px] font-mono">VECTOR</span>
                   </div>
-                  <span className="text-xs text-slate-400 block mb-1">Noise Pollution Level</span>
-                  <div className="text-2xl font-extrabold text-white font-mono">{noisePollutionLevel} <span className="text-xs font-normal text-slate-400">dB</span></div>
+                  <span className="text-xs text-slate-400 block mb-1">Environmental Noise</span>
+                  <span className="block text-[10px] leading-relaxed text-rose-300">{selectedCityProfile?.noise.source ?? 'Loading provider…'}</span>
+                  <div className="mt-3 text-base font-bold leading-snug text-white">{selectedCityProfile ? `${selectedCityProfile.noise.value} ${selectedCityProfile.noise.unit}` : 'Loading…'}</div>
+                  <p className="mt-2 text-[10px] leading-relaxed text-slate-400">{selectedCityProfile?.noise.detail}</p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
-                  <span className="text-rose-400">Moderate</span>
-                  <div className="w-3 h-3 rounded-full bg-rose-400"></div>
+                <div className="mt-4 border-t border-slate-800/60 pt-3 text-[10px] text-slate-500">
+                  {selectedCityProfile?.noise.status ?? 'LOADING'} · {selectedCityProfile?.noise.updated ?? 'Provider time unavailable'}
                 </div>
               </div>
             </div>
@@ -523,8 +679,20 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
           </div>
         ))}
 
+        {section === 'report' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={saveCityReport} disabled={isProfileLoading || !hasReportableData} className="rounded-xl border border-[#22FFAA]/30 bg-[#22FFAA]/10 px-3 py-2 text-xs text-[#22FFAA] disabled:cursor-not-allowed disabled:opacity-50">
+              Save source snapshot
+            </button>
+            <button type="button" onClick={exportCityReport} disabled={isProfileLoading} className="rounded-xl border border-slate-700 px-3 py-2 text-xs text-slate-300 disabled:cursor-not-allowed disabled:opacity-50">
+              Export data JSON
+            </button>
+            {reportMessage && <p role="status" className="text-[10px] text-slate-400">{reportMessage}</p>}
+          </div>
+        )}
+
         {/* SECTION 2: THE 3 COMPETITION SOLUTION FEATURES (GRID) */}
-        {section === 'dashboard' && (
+        {(section === 'dashboard' || section === 'simulation' || section === 'alerts') && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* FEATURE 1: Urban Heat Island (UHI) Simulator */}
@@ -535,11 +703,11 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
                   <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
                     <Sun className="w-4 h-4" />
                   </div>
-                  <h3 className="text-white font-bold text-sm">UHI Policy Simulator</h3>
+                  <h3 className="text-white font-bold text-sm">Urban heat scenario inputs</h3>
                 </div>
-                <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">Interactive Sandbox</span>
+                <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">INPUTS ONLY</span>
               </div>
-              <p className="text-xs text-slate-400 mb-5 leading-relaxed">Simulate municipal interventions to mitigate peak summer urban temperatures in real time.</p>
+              <p className="text-xs text-slate-400 mb-5 leading-relaxed">Set hypothetical intervention assumptions. No validated urban-heat calculation is connected.</p>
 
               <div className="space-y-4">
                 <div>
@@ -582,16 +750,14 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
 
             <div className="mt-6 p-4 rounded-2xl bg-[#22FFAA]/10 border border-[#22FFAA]/30 flex items-center justify-between shadow-inner">
               <div>
-                <span className="text-[11px] text-[#22FFAA] font-semibold block">Predicted Summer Cooling:</span>
-                <span className="text-[10px] text-slate-400">Model verified via satellite telemetry</span>
+                <span className="text-[11px] text-[#22FFAA] font-semibold block">Projected cooling impact</span>
+                <span className="text-[10px] text-slate-400">No validated urban-heat model is connected</span>
               </div>
-              <span className="text-lg font-extrabold text-white font-mono">
-                -{(treeCoverage * 0.032 + whiteRoof * 0.018 + industrialCap * 0.025).toFixed(1)} °C
-              </span>
+              <span className="text-sm font-semibold text-slate-400">Unavailable</span>
             </div>
           </div>
 
-          {/* FEATURE 2: Live Citizen Hazard Reporting & Crowdsourced Pin Map */}
+          {/* Local hazard submissions are not geocoded or shared with a municipal service. */}
           <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl flex flex-col justify-between shadow-xl">
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -599,40 +765,14 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
                   <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                     <AlertCircle className="w-4 h-4" />
                   </div>
-                  <h3 className="text-white font-bold text-sm">Citizen Hazard Pin Map</h3>
+                  <h3 className="text-white font-bold text-sm">Local Hazard Register</h3>
                 </div>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">Crowdsourced Vector</span>
+                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">BROWSER-LOCAL</span>
               </div>
-              <p className="text-xs text-slate-400 mb-3 leading-relaxed">Log civic hazards to instantly plot coordinates onto the municipal grid overlay.</p>
+              <p className="text-xs text-slate-400 mb-3 leading-relaxed">Record a location description for this city. Reports are stored only in this browser and are not sent to authorities or placed on the map.</p>
 
-              <div className="w-full h-32 rounded-2xl bg-[#131B2E] border border-slate-800 relative mb-3 overflow-hidden flex items-center justify-center group">
-                <div className="absolute inset-0 bg-[radial-gradient(#34d399_1px,transparent_1px)] [background-size:14px_14px] opacity-20"></div>
-                
-                {reports.map((r) => (
-                  <div 
-                    key={`map-pin-${r.id}`}
-                    className="absolute group/pin cursor-pointer transform -translate-x-1/2 -translate-y-1/2"
-                    style={{ top: r.coords.y, left: r.coords.x }}
-                  >
-                    <span className={`absolute -inset-1 rounded-full animate-ping opacity-75 ${
-                      r.severity === 'Critical' ? 'bg-rose-500' : r.severity === 'High' ? 'bg-amber-400' : 'bg-emerald-400'
-                    }`}></span>
-                    <div className={`relative w-3.5 h-3.5 rounded-full border border-slate-900 shadow-md flex items-center justify-center ${
-                      r.severity === 'Critical' ? 'bg-rose-500' : r.severity === 'High' ? 'bg-amber-400' : 'bg-emerald-400'
-                    }`}></div>
-                    
-                    <div className="absolute bottom-5 left-1/2 -translate-x-1/2 hidden group-hover/pin:flex flex-col bg-slate-950 text-white text-[10px] p-2 rounded-lg border border-slate-800 shadow-xl whitespace-nowrap z-30">
-                      <span className="font-bold text-[#22FFAA]">{r.type}</span>
-                      <span className="text-slate-300">{r.location}</span>
-                      <span className="text-slate-400 font-mono text-[9px]">Severity: {r.severity}</span>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="absolute bottom-2 right-2 bg-slate-950/80 backdrop-blur border border-slate-800/80 px-2 py-1 rounded text-[9px] font-mono text-slate-300 flex items-center gap-1.5 z-10">
-                  <Navigation className="w-3 h-3 text-[#22FFAA]" />
-                  <span>{reports.length} Active Pins Mapped</span>
-                </div>
+              <div className="mb-3 rounded-xl border border-slate-800 bg-[#131B2E] px-3 py-4 text-xs text-slate-400">
+                {cityReports.length} local submissions for {selectedCity}. No verified location coordinates are available.
               </div>
 
               <form onSubmit={handleAddHazard} className="space-y-2 mb-3">
@@ -672,17 +812,18 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
                     type="submit"
                     className="px-4 py-2.5 rounded-xl bg-[#22FFAA] text-slate-950 font-semibold text-xs hover:bg-[#1edb95] transition whitespace-nowrap shadow-[0_0_15px_rgba(34,255,170,0.2)]"
                   >
-                    Drop Pin
+                    Save Report
                   </button>
                 </div>
               </form>
+              {(hazardStorageError || hazardSnapshot.error) && <p role="alert" className="mb-3 text-[10px] text-rose-300">{hazardStorageError || hazardSnapshot.error}</p>}
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-slate-300">Telemetry Incident Feed</span>
+                <span className="text-[11px] font-semibold text-slate-300">Submitted reports</span>
                 <div className="flex gap-1 text-[10px] font-mono">
-                  {['All', 'Pending', 'In Progress', 'Resolved'].map((filter) => (
+                  {['All', 'Low', 'Medium', 'High', 'Critical'].map((filter) => (
                     <button
                       key={filter}
                       onClick={() => setActiveFilter(filter)}
@@ -715,20 +856,11 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
                             {r.severity}
                           </span>
                         </div>
-                        <span className="text-[10px] text-slate-400 block">{r.location} · {r.date}</span>
+                        <span className="text-[10px] text-slate-400 block">{r.location} · Submitted {new Date(r.reportedAt).toLocaleString()}</span>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded font-mono text-[10px] border flex items-center gap-1 ${
-                          r.status === 'Resolved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                          r.status === 'In Progress' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
-                          'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                        }`}>
-                          {r.status === 'Resolved' && <CheckCircle2 className="w-3 h-3" />}
-                          {r.status === 'In Progress' && <Navigation className="w-3 h-3" />}
-                          {r.status === 'Pending' && <Clock className="w-3 h-3" />}
-                          {r.status}
-                        </span>
+                        <span className="rounded border border-slate-700 px-2 py-0.5 font-mono text-[10px] text-slate-400">LOCAL SUBMISSION</span>
                       </div>
                     </div>
                   ))
@@ -747,18 +879,18 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
                   </div>
                   <h3 className="text-white font-bold text-sm">Flash Flood Predictor</h3>
                 </div>
-                <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded">Topography Model</span>
+                <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded">NO MODEL CONNECTED</span>
               </div>
-              <p className="text-xs text-slate-400 mb-5 leading-relaxed">Real-time stormwater capacity analysis based on precipitation rates.</p>
+              <p className="text-xs text-slate-400 mb-5 leading-relaxed">Set hypothetical scenario inputs only; current precipitation and city drainage measurements are not connected.</p>
 
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-xs text-slate-300 mb-1.5">
-                    <span>Precipitation Rate</span>
+                    <span>Hypothetical rainfall rate</span>
                     <span className="font-mono text-cyan-400">{rainfall} mm/hr</span>
                   </div>
-                  <input 
-                    type="range" min="2" max="60" value={rainfall} 
+                  <input
+                    type="range" min="0" max="60" value={rainfall}
                     onChange={(e) => setRainfall(Number(e.target.value))}
                     className="w-full accent-cyan-400 cursor-pointer bg-slate-800 h-1.5 rounded-lg"
                   />
@@ -766,11 +898,11 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
 
                 <div>
                   <div className="flex justify-between text-xs text-slate-300 mb-1.5">
-                    <span>Drainage Capacity</span>
+                    <span>Assumed drainage capacity</span>
                     <span className="font-mono text-cyan-400">{drainageCapacity}%</span>
                   </div>
-                  <input 
-                    type="range" min="30" max="100" value={drainageCapacity} 
+                  <input
+                    type="range" min="0" max="100" value={drainageCapacity}
                     onChange={(e) => setDrainageCapacity(Number(e.target.value))}
                     className="w-full accent-cyan-400 cursor-pointer bg-slate-800 h-1.5 rounded-lg"
                   />
@@ -778,22 +910,9 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
               </div>
             </div>
 
-            <div className={`mt-6 p-4 rounded-2xl border flex flex-col gap-1.5 shadow-inner ${
-              rainfall > 35 || drainageCapacity < 50
-                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' 
-                : rainfall > 20 
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' 
-                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-            }`}>
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span>{rainfall > 35 ? 'Critical Flood Alert' : rainfall > 20 ? 'Moderate Caution' : 'Normal Drainage Status'}</span>
-                <span className="font-mono">{rainfall > 35 ? 'Risk: 89%' : rainfall > 20 ? 'Risk: 44%' : 'Risk: 11%'}</span>
-              </div>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                {rainfall > 35 
-                  ? 'AI Action: Reroute low-elevation traffic & engage emergency pumps.' 
-                  : 'Municipal stormwater networks operating safely within thresholds.'}
-              </p>
+            <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-900/50 p-4 text-slate-400">
+              <p className="text-xs font-semibold">Risk calculation unavailable</p>
+              <p className="mt-1.5 text-[11px] leading-relaxed">Slider values are hypothetical inputs, not current rainfall or measured drainage capacity. No validated flood model or city hydrology data is connected, so no risk score or response recommendation is produced.</p>
             </div>
           </div>
 
@@ -810,23 +929,18 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2.5">
                   <MapPin className="w-4 h-4 text-[#22FFAA]" />
-                  <h3 className="text-white font-bold text-sm">Geospatial Telemetry Grid & Sector Radar</h3>
+                  <h3 className="text-white font-bold text-sm">City location map</h3>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="text-xs text-slate-400 font-mono">Live Sector Map</span>
+                  <span className="text-xs text-slate-400 font-mono">OpenStreetMap · city-centre marker</span>
                 </div>
               </div>
-              <CityMap selectedCity={selectedCity} airQualityIndex={airQualityIndex} />
+              <CityMap city={globalCity} data={cityData} />
             </div>
 
             <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-800/60 text-xs text-slate-400">
-              <span className="font-mono">Elevation: 12m ASL</span>
-              <div className="flex gap-4">
-                <span className="text-[#22FFAA]">● Thermal Layer</span>
-                <span className="text-cyan-400">● Hydrology</span>
-                <span className="text-amber-400">● Carbon Flux</span>
-              </div>
+              <span className="font-mono">{globalCity.coordinates.latitude.toFixed(4)}, {globalCity.coordinates.longitude.toFixed(4)}</span>
+              <span>Environmental overlays unavailable without geographic datasets.</span>
             </div>
           </div>
           )}
@@ -836,119 +950,23 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
             <div>
               <div className="flex items-center gap-2.5 mb-4">
                 <ShieldAlert className="w-4 h-4 text-[#22FFAA]" />
-                <h3 className="text-white font-bold text-sm">AI Urban Recommendations</h3>
+                <h3 className="text-white font-bold text-sm">City recommendations</h3>
               </div>
 
-              <div className="space-y-3">
-                {recommendations.map((rec) => (
-                  <div key={rec.id} className="p-3.5 rounded-2xl bg-[#131B2E] border border-slate-800/70 text-xs space-y-1 hover:border-[#22FFAA]/30 transition">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-[#22FFAA] bg-[#22FFAA]/10 px-2 py-0.5 rounded">{rec.category}</span>
-                      <span className="text-[10px] font-mono text-slate-400">{rec.status}</span>
-                    </div>
-                    <strong className="text-white block">{rec.title}</strong>
-                    <p className="text-[11px] text-slate-400">Expected Impact: <span className="text-emerald-400 font-semibold">{rec.impact}</span></p>
-                  </div>
-                ))}
+              <div className="rounded-xl border border-slate-800 bg-[#131B2E] p-4 text-xs text-slate-400">
+                No validated recommendation engine or city planning dataset is connected for {selectedCity}. The application will not invent interventions or impact estimates.
               </div>
             </div>
-
-            <button 
-              onClick={() => alert("Full AI Audit report generated and queued for export.")}
-              className="w-full mt-5 py-3 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-white hover:bg-slate-800 transition shadow-md"
-            >
-              Export Full AI Audit
-            </button>
+            <button type="button" onClick={exportCityReport} className="mt-5 w-full rounded-xl border border-slate-800 bg-slate-900 py-3 text-xs font-semibold text-white transition hover:bg-slate-800 shadow-md">Export source data JSON</button>
           </div>
           )}
 
         </div>
         )}
 
-        {/* SECTION 4: GLOBAL TOP 10 CLEANEST CITIES TABLE */}
-        {section === 'compare' && (
-        <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl shadow-xl">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Globe className="w-4 h-4 text-[#22FFAA]" />
-                Global Top 10 Cleanest Cities Benchmark
-              </h3>
-              <p className="text-xs text-slate-400">Real-time international ranking based on multi-vector biological telemetry.</p>
-            </div>
-            <span className="text-xs font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
-              Updated Live
-            </span>
-          </div>
+        {section === 'compare' && <CityComparison city={globalCity} data={cityData} />}
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-800 text-[11px] font-mono text-slate-400 uppercase">
-                  <th className="py-3 px-4">Rank</th>
-                  <th className="py-3 px-4">City</th>
-                  <th className="py-3 px-4">Country</th>
-                  <th className="py-3 px-4">Telemetry Score</th>
-                  <th className="py-3 px-4 text-right">YoY Trend</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 text-xs">
-                {cleanestCities.map((item) => (
-                  <tr key={item.rank} className="hover:bg-slate-900/40 transition">
-                    <td className="py-3.5 px-4 font-mono font-bold text-[#22FFAA]">#{item.rank}</td>
-                    <td className="py-3.5 px-4 font-semibold text-white">{item.city}</td>
-                    <td className="py-3.5 px-4 text-slate-400">{item.country}</td>
-                    <td className="py-3.5 px-4 font-mono text-cyan-400">{item.score} / 100</td>
-                    <td className="py-3.5 px-4 text-right font-mono text-emerald-400">{item.change}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        )}
-
-        {/* SECTION 5: DECADE VIEW HISTORICAL TIMELINE */}
-        {section === 'timeline' && (
-        <div className="p-6 rounded-3xl bg-[#0B0F1A]/90 border border-slate-800/80 backdrop-blur-2xl shadow-xl">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#22FFAA]" />
-                Decade View · Historical & Predictive Urban Timeline
-              </h3>
-              <p className="text-xs text-slate-400">Tracking environmental evolution and future AI projections from 2018 to 2030.</p>
-            </div>
-            <span className="text-xs font-mono text-[#22FFAA] bg-[#22FFAA]/10 border border-[#22FFAA]/20 px-3 py-1 rounded-xl">
-              AI Forecast Model Active
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4 pt-4">
-            {timelineData.map((t, idx) => (
-              <div key={idx} className={`p-4 rounded-2xl border flex flex-col justify-between ${
-                t.isHighlighted 
-                  ? 'bg-[#22FFAA]/10 border-[#22FFAA]/40 shadow-[0_0_20px_rgba(34,255,170,0.1)]' 
-                  : t.isForecast 
-                  ? 'bg-slate-900/40 border-slate-800/80 border-dashed' 
-                  : 'bg-[#131B2E] border-slate-800'
-              }`}>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-mono text-slate-400">{t.year}</span>
-                  {t.isForecast && <span className="text-[9px] font-mono text-[#22FFAA]">Est.</span>}
-                </div>
-                <div className="my-2">
-                  <div className="text-xl font-extrabold text-white font-mono">{t.score}</div>
-                  <span className="text-[10px] text-slate-400">Health Score</span>
-                </div>
-                <div className="w-full bg-slate-800/80 h-1.5 rounded-full mt-3 overflow-hidden">
-                  <div className={`h-full ${t.isForecast ? 'bg-[#22FFAA]/60' : 'bg-[#22FFAA]'}`} style={{ width: t.height }}></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        )}
+        {section === 'timeline' && <HistoricalTemperatureChart city={globalCity} initialPeriod="5Y" />}
 
         {section === 'saved' && (
           <section className="space-y-5">
@@ -957,6 +975,7 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
               <h1 className="mt-1 text-2xl font-extrabold text-white">Saved City Reports</h1>
               <p className="mt-2 text-sm text-slate-400">Reports you save from City Report are stored in this browser.</p>
             </div>
+            {savedReportsSnapshot.error && <p role="alert" className="rounded border border-rose-900/70 bg-rose-950/20 px-3 py-2 text-[10px] text-rose-300">{savedReportsSnapshot.error}</p>}
             {savedReports.length ? (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {savedReports.map((report) => (
@@ -964,16 +983,49 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h2 className="font-bold text-white">{report.city}</h2>
-                        <p className="mt-1 text-xs text-slate-500">Saved {report.savedAt}</p>
+                        <p className="mt-1 text-xs text-slate-500">Saved {new Date(report.savedAt).toLocaleString()}</p>
                       </div>
                       <FileText className="h-4 w-4 text-[#22FFAA]" />
                     </div>
-                    <dl className="mt-5 grid grid-cols-2 gap-3 text-xs">
-                      <div><dt className="text-slate-500">Air quality</dt><dd className="mt-1 font-mono text-white">{report.airQualityIndex} AQI</dd></div>
-                      <div><dt className="text-slate-500">Water purity</dt><dd className="mt-1 font-mono text-white">{report.waterPurityScore}/100</dd></div>
-                      <div><dt className="text-slate-500">Green canopy</dt><dd className="mt-1 font-mono text-white">{report.greenCanopyIndex}%</dd></div>
-                      <div><dt className="text-slate-500">Carbon output</dt><dd className="mt-1 font-mono text-white">{report.carbonEmissionRate} kt/mo</dd></div>
+                    <dl className="mt-5 space-y-3 text-xs">
+                      {report.weather && <div>
+                        <dt className="text-slate-500">Weather</dt>
+                        <dd className="mt-1 font-semibold text-white">
+                          {report.weather.temperature === null
+                            ? 'Unavailable'
+                            : measurementSystem === 'Metric'
+                              ? `${report.weather.temperature.toFixed(1)} °C`
+                              : `${(report.weather.temperature * 9 / 5 + 32).toFixed(1)} °F`}
+                          {report.weather.apparentTemperature == null
+                            ? ''
+                            : measurementSystem === 'Metric'
+                              ? ` · ${report.weather.apparentTemperature.toFixed(1)} °C apparent`
+                              : ` · ${(report.weather.apparentTemperature * 9 / 5 + 32).toFixed(1)} °F apparent`}
+                          {report.weather.humidity === null ? '' : ` · ${report.weather.humidity}% humidity`}
+                          {report.weather.windSpeed === null
+                            ? ''
+                            : measurementSystem === 'Metric'
+                              ? ` · ${report.weather.windSpeed.toFixed(1)} km/h wind`
+                              : ` · ${(report.weather.windSpeed / 1.609344).toFixed(1)} mph wind`}
+                        </dd>
+                        <dd className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
+                          {report.weather.source} · {report.weather.status} · {report.weather.updated ?? 'No provider time'}
+                        </dd>
+                      </div>}
+                      {savedVectorNames.map(({ label, key }) => {
+                        const metric = report.vectors[key];
+                        return (
+                        <div key={key}>
+                          <dt className="text-slate-500">{label}</dt>
+                          <dd className="mt-1 font-semibold text-white">{metric.value}</dd>
+                          <dd className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
+                            {metric.source} · {metric.status} · {metric.updated ?? 'No provider time'} · {metric.detail}
+                          </dd>
+                        </div>
+                        );
+                      })}
                     </dl>
+                    <button type="button" onClick={() => removeSavedReport(report.id)} className="mt-4 rounded border border-slate-700 px-3 py-1.5 text-[10px] text-slate-400 hover:border-rose-800 hover:text-rose-300">Delete snapshot</button>
                   </article>
                 ))}
               </div>
@@ -981,7 +1033,7 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
               <div className="rounded-3xl border border-slate-800 bg-[#0B0F1A]/90 p-10 text-center">
                 <BookmarkCheck className="mx-auto h-9 w-9 text-slate-600" />
                 <h2 className="mt-4 font-bold text-white">No saved reports yet</h2>
-                <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">Scan a city in City Report, then save its environmental snapshot to find it here later.</p>
+                <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">Save a city snapshot from City Report when at least one connected provider has returned data.</p>
                 <Link href="/city-report" className="mt-5 inline-flex rounded-xl bg-[#22FFAA] px-4 py-2.5 text-xs font-bold text-slate-950">Go to City Report</Link>
               </div>
             )}
@@ -993,15 +1045,15 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
             <div>
               <span className="text-[10px] font-mono uppercase tracking-wider text-[#22FFAA]">About this platform</span>
               <h1 className="mt-1 text-2xl font-extrabold text-white">City DNA, at a glance</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">City DNA brings environmental indicators and practical urban planning tools together in one workspace, helping teams explore city health, compare benchmarks, and consider potential interventions.</p>
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">DNA · City brings provider-backed environmental context, city-centre mapping, and clearly scoped analytical tools into one workspace. Unsupported city indicators remain unavailable rather than being filled with sample values.</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {[
-                { title: 'Environmental report', text: 'Review air, water, canopy, carbon, and noise indicators alongside a geospatial sector view.' },
-                { title: 'City benchmarks', text: 'Compare clean-city benchmark scores and year-over-year movement in one ranked view.' },
-                { title: 'Urban planning tools', text: 'Explore heat-mitigation, citizen hazard reporting, and stormwater risk scenarios.' },
-                { title: 'Recommendations', text: 'Review suggested energy and water actions with their expected impact.' },
-                { title: 'Historical outlook', text: 'Follow the illustrative health-score timeline and its future projections.' },
+                { title: 'Environmental report', text: 'Review modelled air-quality output and the explicit availability of other environmental vectors.' },
+                { title: 'City comparison', text: 'Compare city-specific provider responses without synthetic health rankings.' },
+                { title: 'Urban planning tools', text: 'Configure scenario inputs; validated impact calculations are not connected.' },
+                { title: 'Recommendations', text: 'Recommendations remain unavailable until a validated city-planning engine and data are configured.' },
+                { title: 'Historical outlook', text: 'Explore city-specific ERA5 daily temperature reanalysis for selected historical periods.' },
                 { title: 'Saved reports', text: 'Keep city snapshots in this browser so they are available on your next visit.' },
               ].map(({ title, text }) => (
                 <article key={title} className="rounded-2xl border border-slate-800 bg-[#0B0F1A]/90 p-5">
@@ -1010,11 +1062,30 @@ export default function UrbanDashboard({ section }: UrbanDashboardProps) {
                 </article>
               ))}
             </div>
-            <p className="text-xs text-slate-500">Displayed scan values are illustrative demo data and should not be used as official environmental measurements.</p>
+            <p className="text-xs text-slate-500">Current external providers are Open-Meteo weather, air quality, geocoding, and historical reanalysis endpoints, plus OpenStreetMap community-mapped vegetation features.</p>
           </section>
         )}
 
       </main>
     </div>
+  );
+}
+
+export default function UrbanDashboard({ section, legacyMode = false }: UrbanDashboardProps) {
+  if (section === 'dashboard' && !legacyMode) return <ProfessionalDashboard />;
+
+  return (
+    <WorkspaceSection section={section}>
+      <LegacyDashboard section={section} embedded />
+    </WorkspaceSection>
+  );
+}
+
+function WorkspaceSection({ section, children }: { section: DashboardSection; children: React.ReactNode }) {
+  const { city, setCity } = useCitySelection();
+  return (
+    <DashboardShell city={city} onSelectCity={setCity}>
+      <div className="professional-legacy-content" data-section={section}>{children}</div>
+    </DashboardShell>
   );
 }

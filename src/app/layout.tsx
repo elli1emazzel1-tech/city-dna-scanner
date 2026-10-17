@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { CitySelectionProvider } from '../components/dashboard/CitySelectionProvider';
+import { WorkspaceProvider } from '../components/dashboard/WorkspaceProvider';
 
 export const metadata: Metadata = {
-  title: 'DNA.CITY Dashboard',
-  description: 'AI Environmental Health Scanner',
+  title: 'DNA · City | Urban Environmental Intelligence',
+  description: 'Urban environmental intelligence, risk context, and climate-planning tools for city teams.',
 };
 
 export default function RootLayout({
@@ -14,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-[#060911] text-slate-100 antialiased">
-        {children}
+        <CitySelectionProvider>
+          <WorkspaceProvider>{children}</WorkspaceProvider>
+        </CitySelectionProvider>
       </body>
     </html>
   );

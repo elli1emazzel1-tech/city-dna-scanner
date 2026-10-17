@@ -1,0 +1,46 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "name": "CityScan MVP",
+  "env": {
+    "CITYSCAN_CRON_SECRET": "@cityscanCronSecret",
+    "SUPABASE_URL": "@supabaseUrl",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabaseServiceRoleKey",
+    "CITYSCAN_CRON_ORG_ID": "@cronOrgId",
+    "CITYSCAN_CLOUD_GATE_PCT": "20",
+    "CITYSCAN_MAX_CITIES_PER_RUN": "5"
+  },
+  "routes": [
+    { "handle": "filesystem" },
+    {
+      "src": "/(?!(api|cityscan|auth|data-sources|simulation|workspace|dashboard|settings|saved-reports|compare-cities|timeline|recommendations|city-report|static)/)",
+      "status": "404",
+      "dest": "/tmp/404.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cityscan/cron",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cityscan/cron?city=london",
+      "schedule": "0 6 0 * *"
+    },
+    {
+      "path": "/api/cityscan/cron?city=paris",
+      "schedule": "0 6 12 * *"
+    },
+    {
+      "path": "/api/cityscan/cron?city=amsterdam",
+      "schedule": "0 6 18 * *"
+    },
+    {
+      "path": "/api/cityscan/cron?city=berlin",
+      "schedule": "0 6 20 * *"
+    },
+    {
+      "path": "/api/cityscan/cron?city=tokyo",
+      "schedule": "0 6 22 * *"
+    }
+  ]
+}
