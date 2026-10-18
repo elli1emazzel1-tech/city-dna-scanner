@@ -135,6 +135,21 @@ function attemptItemId(): string {
   return `attempt-${new Date().toISOString().replace(/[-:.]/g, '')}`;
 }
 
+/**
+ * User-facing failure reason: first line only, absolute paths redacted,
+ * capped at 280 chars. The full message stays in server logs; the UI only
+ * ever sees this sanitised string (never credentials or stack traces).
+ */
+function sanitizeFailureMessage(message: string): string {
+  const firstLine = message.split(/\r?\n/)[0] ?? message;
+  const noPaths = firstLine
+    .replace(/[A-Za-z]:\\[^\s'"]*/g, '[path]')
+    .replace(/\/[^\s'"]*city-dna[^\s'"]*/gi, '[path]');
+  const compact = noPaths.replace(/\s+/g, ' ').trim();
+  if (!compact) return 'Scan failed unexpectedly.';
+  return compact.length <= 280 ? compact : `${compact.slice(0, 277)}...`;
+}
+
 function resolvePlatform(raw: unknown, itemId: string): Platform {
   const normalized = String(raw ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
   for (const code of ['a', 'b', 'c'] as const) {
@@ -330,8 +345,16 @@ export async function executeScan(
     if (manual) {
       beforeItem = await fetchStacItem(String(params.beforeId));
       afterItem = await fetchStacItem(String(params.afterId));
+      if (beforeItem.id === afterItem.id) {
+        throw new Error(
+          'The before and after observations must be different scenes; the same STAC item is not a change pair.',
+        );
+      }
       beforeMeta = extractStacMeta(beforeItem);
       afterMeta = extractStacMeta(afterItem);
+      if (Date.parse(beforeMeta.acquiredAt) >= Date.parse(afterMeta.acquiredAt)) {
+        throw new Error('The before observation must be earlier than the after observation.');
+      }
     } else {
       const recent = await searchStacItems(bbox, { cloudGatePct: CLOUD_GATE_PCT });
       if (recent.items.length === 0) {
@@ -363,9 +386,22 @@ export async function executeScan(
         cloudGatePct: CLOUD_GATE_PCT,
         before: afterMeta.acquiredAt,
       });
-      const sameTile = prior.items.filter(
-        (item) => item.properties['grid:code'] === afterTile,
-      );
+      if (!afterItem || !afterMeta) {
+        throw new Error('Internal: scan discovery produced no after item.');
+      }
+      const afterId = afterItem.id;
+      const afterAcquiredAt = afterMeta.acquiredAt;
+      const sameTile = prior.items.filter((item) => {
+        if (item.properties['grid:code'] !== afterTile) return false;
+        // The `../before` window is inclusive of its endpoint, so the after
+        // item itself can reappear here. Pairing a scene with itself is not a
+        // change pair — runScan rejects equal datetimes — so exclude it and
+        // require a strictly earlier acquisition.
+        if (item.id === afterId) return false;
+        const itemMs = Date.parse(item.properties.datetime);
+        const afterMs = Date.parse(afterAcquiredAt);
+        return Number.isFinite(itemMs) && Number.isFinite(afterMs) && itemMs < afterMs;
+      });
 
       if (sameTile.length === 0) {
         const reason = prior.matched === 0
@@ -415,7 +451,7 @@ export async function executeScan(
       expectedTile: afterMeta.tile,
       expectedEpsg,
     });
-    const result: ScanResult = runScan(beforeScene, afterScene, aoi);
+    const result: ScanResult = runScan(beforeScene, afterScene, beforeScene.effectiveAoi ?? aoi);
 
     const pairStatus: ObservationStatus = result.status === 'ACCEPTED'
       ? 'accepted'
@@ -469,6 +505,7 @@ export async function executeScan(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`CityScan scan failed for ${city.id}: ${message}`);
+    const safeMessage = sanitizeFailureMessage(message);
 
     let beforeObsId: string | null = null;
     let afterObsId: string | null = null;
@@ -477,7 +514,7 @@ export async function executeScan(
         itemId: afterMeta.itemId,
         meta: afterMeta,
         status: 'failed',
-        rejectionReason: message,
+        rejectionReason: safeMessage,
         totalAoiPixels: 0,
         commonValidPct: null,
       });
@@ -487,7 +524,7 @@ export async function executeScan(
         itemId: beforeMeta.itemId,
         meta: beforeMeta,
         status: 'failed',
-        rejectionReason: message,
+        rejectionReason: safeMessage,
         totalAoiPixels: 0,
         commonValidPct: null,
       });
@@ -497,7 +534,7 @@ export async function executeScan(
         itemId: attemptItemId(),
         meta: null,
         status: 'failed',
-        rejectionReason: message,
+        rejectionReason: safeMessage,
         totalAoiPixels: 0,
         commonValidPct: null,
       });
@@ -517,7 +554,7 @@ export async function executeScan(
       },
       tile: afterMeta?.tile ?? beforeMeta?.tile ?? null,
       epsg: afterMeta?.epsg ?? beforeMeta?.epsg ?? null,
-      rejectionReason: message,
+      rejectionReason: safeMessage,
     });
   }
 }
