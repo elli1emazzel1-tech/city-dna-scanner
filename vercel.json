@@ -13,7 +13,7 @@
     { "handle": "filesystem" },
     {
       "src": "/(?!(api|cityscan|auth|data-sources|simulation|workspace|dashboard|settings|saved-reports|compare-cities|timeline|recommendations|city-report|static)/)",
-      "status": "404",
+      "status": 404,
       "dest": "/tmp/404.html"
     }
   ],
