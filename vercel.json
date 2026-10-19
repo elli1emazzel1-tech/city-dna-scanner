@@ -2,10 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "name": "CityScan MVP",
   "env": {
-    "CITYSCAN_CRON_SECRET": "@cityscanCronSecret",
-    "SUPABASE_URL": "@supabaseUrl",
-    "SUPABASE_SERVICE_ROLE_KEY": "@supabaseServiceRoleKey",
-    "CITYSCAN_CRON_ORG_ID": "@cronOrgId",
     "CITYSCAN_CLOUD_GATE_PCT": "20",
     "CITYSCAN_MAX_CITIES_PER_RUN": "5"
   },

@@ -8,9 +8,10 @@
  *    result is returned, but NOTHING is written to the database
  *    (`persisted: false`).
  * A non-interactive caller may instead pass
- * `x-cityscan-secret == CITYSCAN_CRON_SECRET`; that path persists only when
- * the cron actor env (SUPABASE_SERVICE_ROLE_KEY + CITYSCAN_CRON_ORG_ID) is
- * configured — otherwise the scan runs compute-only (`persisted: false`).
+ * `Authorization: Bearer <CRON_SECRET>` (or the manual
+ * `x-cityscan-secret` header); that path persists only when the cron actor
+ * env (SUPABASE_SERVICE_ROLE_KEY + CITYSCAN_CRON_ORG_ID) is configured —
+ * otherwise the scan runs compute-only (`persisted: false`).
  *
  * Body: { cityId: string, orgId?: string, beforeId?: string, afterId?: string }
  * Response: plan §3 status enum. HTTP 200 for ACCEPTED / REJECTED_* /
@@ -59,7 +60,7 @@ export async function POST(request: Request): Promise<Response> {
   // from checkCronSecret). Its absence is acceptable only if a session
   // authorises the caller below.
   let secretValid = false;
-  if (request.headers.get('x-cityscan-secret') !== null) {
+  if (request.headers.get('x-cityscan-secret') !== null || request.headers.get('authorization') !== null) {
     const denied = checkCronSecret(request);
     if (denied) return denied;
     secretValid = true;

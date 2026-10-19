@@ -4,7 +4,7 @@
  * getAuthContext/requireAuth wrap the cookie-based server client from
  * `src/lib/supabase/server.ts` and resolve the signed-in user's organisation
  * membership (org_id + role; oldest membership first for multi-org users).
- * checkCronSecret guards the Vercel cron entrypoint (plan §3: missing/invalid
+ * checkCronSecret guards the Vercel cron entrypoint (missing/invalid
  * secret → 401). resolveCronActor builds the optional service-role
  * persistence context (SUPABASE_SERVICE_ROLE_KEY + CITYSCAN_CRON_ORG_ID, both
  * server-only) so cron scans can write without a browser session; unconfigured
@@ -14,6 +14,7 @@ import { createClient as createAdminClient, type SupabaseClient } from '@supabas
 
 import { createClient } from '@/lib/supabase/server';
 import { getSupabaseUrl } from '@/lib/supabase/config';
+import { isCronRequestAuthorized } from './cronSecret';
 
 export interface AuthContext {
   userId: string;
@@ -149,10 +150,10 @@ export function publicDataUnavailable(): Response {
 
 /** Cron secret guard. Returns null when valid, else a ready 401/500 Response. */
 export function checkCronSecret(request: Request): Response | null {
-  const secret = process.env.CITYSCAN_CRON_SECRET;
-  if (!secret) return reject(500, 'Cron secret not configured (set CITYSCAN_CRON_SECRET).');
-  const provided = request.headers.get('x-cityscan-secret');
-  if (!provided || provided !== secret) {
+  const secret = process.env.CRON_SECRET || process.env.CITYSCAN_CRON_SECRET;
+  if (!secret) return reject(500, 'Cron secret not configured (set CRON_SECRET).');
+
+  if (!isCronRequestAuthorized(request, secret)) {
     return reject(401, 'Unauthorized: missing or invalid cron secret.');
   }
   return null;

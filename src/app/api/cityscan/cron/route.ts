@@ -1,7 +1,7 @@
 /**
  * POST /api/cityscan/cron — Vercel Cron entrypoint (Sunday 06:00 UTC per
- * vercel.json). Protected by `x-cityscan-secret == CITYSCAN_CRON_SECRET`
- * (plan §3: missing/invalid → 401).
+ * vercel.json). Protected by Vercel's `Authorization: Bearer <CRON_SECRET>`
+ * header; manual callers may use `x-cityscan-secret` (missing/invalid → 401).
  *
  * Calls the shared scan pipeline directly (plan §7: "Calls POST
  * /api/cityscan/scan logic internally" — no HTTP hop, no session needed) for
@@ -121,4 +121,8 @@ export async function POST(request: Request): Promise<Response> {
     failed,
     results,
   });
+}
+
+export async function GET(request: Request): Promise<Response> {
+  return POST(request);
 }
