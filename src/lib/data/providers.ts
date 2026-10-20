@@ -1,4 +1,10 @@
 import { getSpatialTelemetry } from './spatialCache';
+import {
+  AIR_QUALITY_FRESHNESS_POLICY,
+  isOptionalPollutantValue,
+  validateProviderTimestamp,
+  WEATHER_FRESHNESS_POLICY,
+} from './providerTime';
 import type {
   City,
   CityEnvironmentalData,
@@ -72,6 +78,7 @@ export interface HistoricalDataProvider {
 interface CurrentWeatherResponse {
   current: {
     time: string;
+    interval: number;
     temperature_2m: number;
     apparent_temperature: number;
     soil_moisture_0_to_7cm: number | null;
@@ -84,6 +91,7 @@ interface CurrentWeatherResponse {
   latitude: number;
   longitude: number;
   current_units: {
+    interval: string;
     temperature_2m: string;
     apparent_temperature: string;
     soil_moisture_0_to_7cm: string;
@@ -95,26 +103,28 @@ interface CurrentWeatherResponse {
 interface CurrentAirQualityResponse {
   current: {
     time: string;
+    interval: number;
     us_aqi: number;
     pm2_5: number;
-    pm10: number | null;
-    nitrogen_dioxide: number | null;
-    ozone: number | null;
-    sulphur_dioxide: number | null;
-    carbon_monoxide: number | null;
+    pm10?: number | null;
+    nitrogen_dioxide?: number | null;
+    ozone?: number | null;
+    sulphur_dioxide?: number | null;
+    carbon_monoxide?: number | null;
   };
   timezone: string;
   utc_offset_seconds: number;
   latitude: number;
   longitude: number;
   current_units: {
+    interval: string;
     us_aqi: string;
     pm2_5: string;
-    pm10: string;
-    nitrogen_dioxide: string;
-    ozone: string;
-    sulphur_dioxide: string;
-    carbon_monoxide: string;
+    pm10?: string;
+    nitrogen_dioxide?: string;
+    ozone?: string;
+    sulphur_dioxide?: string;
+    carbon_monoxide?: string;
   };
 }
 
@@ -128,12 +138,12 @@ interface FloodDischargeResponse {
   longitude: number;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
 function isTimestamp(value: unknown): value is string {
@@ -144,6 +154,9 @@ function isCurrentWeatherResponse(value: unknown): value is CurrentWeatherRespon
   if (!isRecord(value) || !isRecord(value.current) || !isRecord(value.current_units)) return false;
   const current = value.current;
   return isTimestamp(current.time)
+    && isFiniteNumber(current.interval)
+    && current.interval > 0
+    && current.interval <= 24 * 60 * 60
     && isFiniteNumber(current.temperature_2m)
     && isFiniteNumber(current.apparent_temperature)
     && (current.soil_moisture_0_to_7cm === null
@@ -166,6 +179,7 @@ function isCurrentWeatherResponse(value: unknown): value is CurrentWeatherRespon
     && isFiniteNumber(value.longitude)
     && value.longitude >= -180
     && value.longitude <= 180
+    && value.current_units.interval === 'seconds'
     && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(current.time)
     && value.current_units.temperature_2m === '°C'
     && value.current_units.apparent_temperature === '°C'
@@ -181,14 +195,21 @@ function isCurrentAirQualityResponse(value: unknown): value is CurrentAirQuality
   const pollutantFields = ['pm10', 'nitrogen_dioxide', 'ozone', 'sulphur_dioxide', 'carbon_monoxide'] as const;
   return isTimestamp(current.time)
     && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(current.time)
+    && isFiniteNumber(current.interval)
+    && current.interval > 0
+    && current.interval <= 24 * 60 * 60
     && isFiniteNumber(current.us_aqi)
     && current.us_aqi >= 0
     && current.us_aqi <= 500
     && Number.isInteger(current.us_aqi)
     && isFiniteNumber(current.pm2_5)
     && current.pm2_5 >= 0
-    && pollutantFields.every((key) =>
-      current[key] === null || (isFiniteNumber(current[key]) && current[key] >= 0))
+    && pollutantFields.every((key) => {
+      const pollutant = current[key];
+      const unit = currentUnits[key];
+      return isOptionalPollutantValue(pollutant)
+        && (pollutant === undefined || unit === undefined || ['μg/m³', 'µg/m³'].includes(String(unit)));
+    })
     && typeof value.timezone === 'string'
     && value.timezone.length > 0
     && isFiniteNumber(value.utc_offset_seconds)
@@ -199,10 +220,16 @@ function isCurrentAirQualityResponse(value: unknown): value is CurrentAirQuality
     && isFiniteNumber(value.longitude)
     && value.longitude >= -180
     && value.longitude <= 180
+    && currentUnits.interval === 'seconds'
     && currentUnits.us_aqi === 'USAQI'
     && ['μg/m³', 'µg/m³'].includes(String(currentUnits.pm2_5))
-    && pollutantFields.every((key) =>
-      ['μg/m³', 'µg/m³'].includes(String(currentUnits[key])));
+    && pollutantFields.every((key) => {
+      const pollutant = current[key];
+      const unit = currentUnits[key];
+      return pollutant === undefined || pollutant === null
+        ? unit === undefined || ['μg/m³', 'µg/m³'].includes(String(unit))
+        : ['μg/m³', 'µg/m³'].includes(String(unit));
+    });
 }
 
 function isHistoricalResponse(value: unknown): value is {
@@ -252,17 +279,6 @@ function distanceInKm(a: Coordinates, b: Coordinates) {
   return 6371 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
-function providerTimestampIsCurrent(time: string, timezone: string, utcOffsetSeconds: number, now = Date.now()) {
-  try {
-    new Intl.DateTimeFormat('en', { timeZone: timezone }).format(0);
-  } catch {
-    return false;
-  }
-  const timestamp = Date.parse(`${time}:00Z`) - utcOffsetSeconds * 1000;
-  const age = now - timestamp;
-  return Number.isFinite(timestamp) && age >= -15 * 60_000 && age <= 3 * 60 * 60_000;
-}
-
 function formatProviderTime(time: string, timezone: string) {
   return `${time.replace('T', ' ')} ${timezone}`;
 }
@@ -287,27 +303,55 @@ async function fetchProviderJson(url: URL, signal: AbortSignal): Promise<unknown
   return response.json() as Promise<unknown>;
 }
 
+async function fetchCurrentProviderJson(
+  provider: 'weather' | 'air-quality',
+  coordinates: Coordinates,
+  signal: AbortSignal,
+): Promise<{ payload: unknown; referenceTime: number }> {
+  const params = new URLSearchParams({
+    provider,
+    latitude: String(coordinates.latitude),
+    longitude: String(coordinates.longitude),
+  });
+  const timeout = AbortSignal.timeout(18_000);
+  const response = await fetch(`/api/environmental/current?${params}`, {
+    signal: AbortSignal.any([signal, timeout]),
+    cache: 'no-store',
+  });
+  let result: unknown;
+  try {
+    result = await response.json() as unknown;
+  } catch {
+    throw new Error(`${provider === 'weather' ? 'Weather' : 'Air-quality'} provider returned an invalid response.`);
+  }
+  if (!isRecord(result)) throw new Error(`${provider === 'weather' ? 'Weather' : 'Air-quality'} provider returned an invalid response.`);
+  if (!response.ok) {
+    throw new Error(typeof result.error === 'string'
+      ? result.error
+      : `${provider === 'weather' ? 'Weather' : 'Air-quality'} provider request failed.`);
+  }
+  if (!('payload' in result) || typeof result.referenceTime !== 'string') {
+    throw new Error(`${provider === 'weather' ? 'Weather' : 'Air-quality'} provider returned an invalid response.`);
+  }
+  const referenceTime = Date.parse(result.referenceTime);
+  if (!Number.isFinite(referenceTime)) {
+    throw new Error(`${provider === 'weather' ? 'Weather' : 'Air-quality'} provider returned no trustworthy response timestamp.`);
+  }
+  return { payload: result.payload, referenceTime };
+}
+
 export const openMeteoWeatherProvider: WeatherProvider = {
   async getWeather(coordinates, signal) {
     if (!coordinatesAreValid(coordinates)) throw new Error('City coordinates are outside valid latitude/longitude bounds.');
-    const url = new URL('https://api.open-meteo.com/v1/forecast');
-    url.search = new URLSearchParams({
-      latitude: String(coordinates.latitude),
-      longitude: String(coordinates.longitude),
-      current: 'temperature_2m,apparent_temperature,soil_moisture_0_to_7cm,relative_humidity_2m,wind_speed_10m,weather_code',
-      timezone: 'auto',
-      temperature_unit: 'celsius',
-      wind_speed_unit: 'kmh',
-    }).toString();
-
-    const payload: unknown = await fetchProviderJson(url, signal);
+    const { payload, referenceTime } = await fetchCurrentProviderJson('weather', coordinates, signal);
     if (!isCurrentWeatherResponse(payload)) throw new Error('Weather provider returned missing or invalid current conditions.');
-    try {
-      new Intl.DateTimeFormat('en', { timeZone: payload.timezone }).format(0);
-    } catch {
-      throw new Error('Weather provider returned an invalid timezone.');
-    }
-    if (!providerTimestampIsCurrent(payload.current.time, payload.timezone, payload.utc_offset_seconds)) {
+    if (!validateProviderTimestamp(
+      payload.current.time,
+      payload.timezone,
+      payload.utc_offset_seconds,
+      referenceTime,
+      WEATHER_FRESHNESS_POLICY,
+    ).valid) {
       throw new Error('Weather provider returned stale or future-dated conditions.');
     }
     if (distanceInKm(coordinates, { latitude: payload.latitude, longitude: payload.longitude }) > 35) {
@@ -331,43 +375,44 @@ export const openMeteoWeatherProvider: WeatherProvider = {
 export const openMeteoAirQualityProvider: AirQualityProvider = {
   async getAirQuality(coordinates, signal) {
     if (!coordinatesAreValid(coordinates)) throw new Error('City coordinates are outside valid latitude/longitude bounds.');
-    const url = new URL('https://air-quality-api.open-meteo.com/v1/air-quality');
-    url.search = new URLSearchParams({
-      latitude: String(coordinates.latitude),
-      longitude: String(coordinates.longitude),
-      current: 'us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,carbon_monoxide',
-      timezone: 'auto',
-    }).toString();
-
-    const payload: unknown = await fetchProviderJson(url, signal);
+    const { payload, referenceTime } = await fetchCurrentProviderJson('air-quality', coordinates, signal);
     if (!isCurrentAirQualityResponse(payload)) throw new Error('Air-quality provider returned missing or invalid AQI data.');
     const returnedCoordinates = { latitude: payload.latitude, longitude: payload.longitude };
     if (distanceInKm(coordinates, returnedCoordinates) > 35) {
       throw new Error('Air-quality provider returned a model grid point too far from the selected city.');
     }
-    if (!providerTimestampIsCurrent(payload.current.time, payload.timezone, payload.utc_offset_seconds)) {
+    if (!validateProviderTimestamp(
+      payload.current.time,
+      payload.timezone,
+      payload.utc_offset_seconds,
+      referenceTime,
+      AIR_QUALITY_FRESHNESS_POLICY,
+    ).valid) {
       throw new Error('Air-quality provider returned stale or future-dated conditions.');
     }
-    const pollutants: [string, number | null][] = [
+    const carbonMonoxideValue = payload.current.carbon_monoxide;
+    const pollutants: [string, number | null | undefined][] = [
       ['PM₁₀', payload.current.pm10],
       ['NO₂', payload.current.nitrogen_dioxide],
       ['O₃', payload.current.ozone],
       ['SO₂', payload.current.sulphur_dioxide],
-      ['CO', payload.current.carbon_monoxide],
+      ['CO', carbonMonoxideValue],
     ];
     const pollutantSummary = pollutants
-      .map(([label, value]) => `${label} ${value === null ? 'unavailable' : `${value.toFixed(1)} µg/m³`}`)
+      .map(([label, value]) => `${label} ${typeof value === 'number' ? `${value.toFixed(1)} µg/m³` : 'unavailable'}`)
       .join(' · ');
-    const carbonMonoxide: EnvironmentalMetric = {
+    const carbonMonoxideMetric: EnvironmentalMetric = {
       id: 'carbon',
       label: 'Carbon monoxide (CO)',
-      value: payload.current.carbon_monoxide?.toFixed(1) ?? 'Unavailable',
+      value: typeof carbonMonoxideValue === 'number' ? carbonMonoxideValue.toFixed(1) : 'Unavailable',
       unit: 'µg/m³',
-      subValue: payload.current.carbon_monoxide === null
-        ? 'CAMS did not return a carbon-monoxide concentration for this model time and grid point. CO is carbon monoxide, not carbon dioxide (CO₂) or greenhouse-gas emissions.'
+      subValue: carbonMonoxideValue === undefined
+        ? 'The provider omitted the carbon-monoxide field for this model time and grid point. CO is carbon monoxide, not carbon dioxide (CO₂) or greenhouse-gas emissions.'
+        : carbonMonoxideValue === null
+          ? 'The provider returned no carbon-monoxide concentration for this model time and grid point. CO is carbon monoxide, not carbon dioxide (CO₂) or greenhouse-gas emissions.'
         : `Modelled carbon-monoxide concentration at ${formatProviderTime(payload.current.time, payload.timezone)} and CAMS grid point ${payload.latitude.toFixed(4)}, ${payload.longitude.toFixed(4)}. CO is not CO₂ or a grid carbon-intensity value.`,
-      condition: payload.current.carbon_monoxide === null ? 'Unavailable' : 'Informational',
-      status: payload.current.carbon_monoxide === null ? 'UNAVAILABLE' : 'MODELLED',
+      condition: typeof carbonMonoxideValue === 'number' ? 'Informational' : 'Unavailable',
+      status: typeof carbonMonoxideValue === 'number' ? 'MODELLED' : 'UNAVAILABLE',
       source: 'Open-Meteo Air Quality API · CAMS global atmospheric model',
       updated: formatProviderTime(payload.current.time, payload.timezone),
     };
@@ -383,7 +428,7 @@ export const openMeteoAirQualityProvider: AirQualityProvider = {
         source: 'Open-Meteo Air Quality API · CAMS global atmospheric model',
         updated: formatProviderTime(payload.current.time, payload.timezone),
       },
-      carbonMonoxide,
+      carbonMonoxide: carbonMonoxideMetric,
     };
   },
 };
@@ -574,6 +619,7 @@ export const openMeteoEnvironmentalProvider: EnvironmentalDataProvider = {
       ? weatherResult.value
       : {
           ...base.weather,
+          status: 'ERROR' as const,
           error: weatherResult.reason instanceof Error ? weatherResult.reason.message : 'Weather provider request failed.',
         };
     const metrics = base.metrics.map((metric) => {
