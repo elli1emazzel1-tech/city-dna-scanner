@@ -14,7 +14,7 @@ export default function HeroWorldMap({ coordinates, label }: { coordinates: Coor
   const top = ((90 - coordinates.latitude) / 180) * 100;
   return (
     <div
-      className="relative aspect-[2/1] w-full overflow-hidden rounded border border-[#1b3041]/80 bg-[#060f18]/80"
+      className="relative mx-auto aspect-[2/1] w-full max-w-[430px] overflow-hidden rounded border border-[#1b3041]/80 bg-[#060f18]/80"
       role="img"
       aria-label={`World map showing the approximate position of ${label}`}
     >

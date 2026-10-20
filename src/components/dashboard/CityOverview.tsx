@@ -43,7 +43,7 @@ export default function CityOverview({ data, isLoading = false }: { data: CityEn
     <section className="relative overflow-hidden rounded-lg border border-[#1b3041] bg-[#0a1926]">
       <div className="absolute inset-y-0 right-0 hidden w-[38%] bg-[radial-gradient(ellipse_at_65%_45%,rgba(27,104,112,0.23),transparent_68%)] md:block" />
       <div className="absolute inset-y-0 left-0 hidden w-[36%] bg-[radial-gradient(ellipse_at_28%_38%,rgba(21,84,94,0.26),transparent_70%)] md:block" />
-      <div className="relative grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)_minmax(238px,0.58fr)] lg:items-center">
+      <div className="relative grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1.16fr)_minmax(0,0.78fr)_minmax(238px,0.58fr)] lg:items-center">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="rounded bg-teal-950/60 px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-teal-300">City overview</span>
@@ -66,7 +66,7 @@ export default function CityOverview({ data, isLoading = false }: { data: CityEn
         </div>
         <div className="min-w-0">
           <HeroWorldMap coordinates={city.coordinates} label={city.name} />
-          <p className="mt-1.5 text-right text-[8px] text-slate-600">Equirectangular projection · Natural Earth 1:110m outlines (public domain)</p>
+          <p className="mt-1.5 mx-auto max-w-[430px] text-right text-[8px] text-slate-600">Equirectangular projection · Natural Earth 1:110m outlines (public domain)</p>
         </div>
         <div className="min-w-0 rounded border border-slate-800/90 bg-[#081622]/75 p-3">
           <div className="flex items-center justify-between gap-2">
