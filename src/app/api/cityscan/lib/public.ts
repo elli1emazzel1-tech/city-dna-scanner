@@ -76,11 +76,17 @@ export function mapPublicFindingSummary(row: PublicFindingRow) {
     ndviMeanAfter: row.ndvi_mean_after,
     ndwiMeanBefore: row.ndwi_mean_before,
     ndwiMeanAfter: row.ndwi_mean_after,
+    vegetationAreaHaBefore: row.vegetation_area_ha_before,
+    vegetationAreaHaAfter: row.vegetation_area_ha_after,
+    waterAreaHaBefore: row.water_area_ha_before,
+    waterAreaHaAfter: row.water_area_ha_after,
     vegetationLossHa: row.vegetation_loss_ha,
     vegetationGainHa: row.vegetation_gain_ha,
     waterGainHa: row.water_gain_ha,
     waterLossHa: row.water_loss_ha,
+    pixelAreaHa: row.pixel_area_ha,
     commonValidPct: row.common_valid_pct,
+    quorumRequiredPct: row.quorum_required_pct,
     methodVersion: row.method_version,
     createdAt: row.created_at,
   };
@@ -88,15 +94,7 @@ export function mapPublicFindingSummary(row: PublicFindingRow) {
 
 /** Accepted-pair row → `/api/cityscan/findings` detail payload. */
 export function mapPublicFindingDetail(row: PublicFindingRow) {
-  return {
-    ...mapPublicFindingSummary(row),
-    vegetationAreaHaBefore: row.vegetation_area_ha_before,
-    vegetationAreaHaAfter: row.vegetation_area_ha_after,
-    waterAreaHaBefore: row.water_area_ha_before,
-    waterAreaHaAfter: row.water_area_ha_after,
-    pixelAreaHa: row.pixel_area_ha,
-    quorumRequiredPct: row.quorum_required_pct,
-  };
+  return mapPublicFindingSummary(row);
 }
 
 /** Accepted observation row → `/api/cityscan/observations` entry. */

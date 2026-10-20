@@ -5,14 +5,6 @@
     "CITYSCAN_CLOUD_GATE_PCT": "20",
     "CITYSCAN_MAX_CITIES_PER_RUN": "5"
   },
-  "routes": [
-    { "handle": "filesystem" },
-    {
-      "src": "/(?!(api|cityscan|auth|data-sources|simulation|workspace|dashboard|settings|saved-reports|compare-cities|timeline|recommendations|city-report|static)/)",
-      "status": 404,
-      "dest": "/tmp/404.html"
-    }
-  ],
   "crons": [
     {
       "path": "/api/cityscan/cron",

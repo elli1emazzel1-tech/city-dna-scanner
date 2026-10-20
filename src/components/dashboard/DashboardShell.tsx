@@ -50,12 +50,12 @@ export default function DashboardShell({ city, children, dataStatus = 'SOURCE ST
   return (
     <div className="min-h-screen bg-[#07111b] text-slate-200">
       <header className="fixed inset-x-0 top-0 z-[1000] flex h-[62px] items-center gap-4 border-b border-[#1a2c3a] bg-[#081521]/95 px-4 backdrop-blur sm:px-6">
-        <Link href="/dashboard" className="flex w-[210px] shrink-0 items-center gap-3" aria-label="DNA City overview">
+        <Link href="/dashboard" className="flex w-[210px] shrink-0 items-center gap-3" aria-label="Enrealys overview">
           <span className="flex h-8 w-8 items-center justify-center rounded-md border border-teal-400/30 bg-teal-400/10 text-teal-300">
             <Waves size={17} strokeWidth={2.2} />
           </span>
           <span className="min-w-0">
-            <span className="block text-[13px] font-semibold tracking-wide text-slate-100">DNA <span className="text-teal-300">·</span> City</span>
+            <span className="block text-[13px] font-semibold tracking-wide text-slate-100">Enrealys</span>
             <span className="block text-[9px] tracking-wide text-slate-500">URBAN INTELLIGENCE ENGINE</span>
           </span>
         </Link>
@@ -91,7 +91,7 @@ export default function DashboardShell({ city, children, dataStatus = 'SOURCE ST
           })}
         </nav>
         <div className="border-t border-[#1a2c3a] px-5 py-4">
-          <div className="mb-2 flex items-center gap-2 text-[10px] font-medium text-slate-400"><CircleHelp size={13} /> DNA · City</div>
+          <div className="mb-2 flex items-center gap-2 text-[10px] font-medium text-slate-400"><CircleHelp size={13} /> Enrealys</div>
           <p className="text-[9px] text-slate-600">Urban Intelligence Engine</p>
           <p className="mt-1 font-mono text-[9px] text-slate-600">Version 1.0.0 · Demo workspace</p>
         </div>

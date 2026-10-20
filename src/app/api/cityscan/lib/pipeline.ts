@@ -31,6 +31,8 @@ const { runScan, readScene } = require('../../../../lib/cityscan/scan.cjs');
 
 const CLOUD_GATE_PCT = Number(process.env.CITYSCAN_CLOUD_GATE_PCT ?? 20);
 const DEFAULT_QUORUM_PCT = 70;
+/** Extended lookback (days) used when the default 14-day window yields no pair. */
+const RETRY_LOOKBACK_DAYS = Number(process.env.CITYSCAN_RETRY_LOOKBACK_DAYS ?? 120);
 
 export interface ScanActor {
   userId: string;
@@ -73,6 +75,16 @@ export interface CityScanResponse {
   quorumRequiredPct: number;
   rejectionReason: string | null;
   metrics: ScanMetrics | null;
+  /** How many days back STAC discovery searched (14 default, 120 on retry). */
+  discoveryWindowDays: number;
+  /** Scenes matched in the window before the cloud gate (0 when the window was empty). */
+  discoveryMatched: number;
+  /** Cloud-cover % of the chosen before/after scenes (null when none chosen). */
+  cloudCoverPctBefore: number | null;
+  cloudCoverPctAfter: number | null;
+  /** Processing baselines of the chosen scenes (null when none chosen). */
+  baselineBefore: string | null;
+  baselineAfter: string | null;
 }
 
 type Platform = 'sentinel-2a' | 'sentinel-2b' | 'sentinel-2c';
@@ -108,6 +120,12 @@ function buildResponse(init: {
   commonValidPct?: number | null;
   quorumRequiredPct?: number;
   metrics?: ScanMetrics | null;
+  discoveryWindowDays?: number;
+  discoveryMatched?: number;
+  cloudCoverPctBefore?: number | null;
+  cloudCoverPctAfter?: number | null;
+  baselineBefore?: string | null;
+  baselineAfter?: string | null;
 }): CityScanResponse {
   return {
     status: init.status,
@@ -127,6 +145,12 @@ function buildResponse(init: {
     quorumRequiredPct: init.quorumRequiredPct ?? DEFAULT_QUORUM_PCT,
     rejectionReason: init.rejectionReason,
     metrics: init.metrics ?? null,
+    discoveryWindowDays: init.discoveryWindowDays ?? RETRY_LOOKBACK_DAYS,
+    discoveryMatched: init.discoveryMatched ?? 0,
+    cloudCoverPctBefore: init.cloudCoverPctBefore ?? null,
+    cloudCoverPctAfter: init.cloudCoverPctAfter ?? null,
+    baselineBefore: init.baselineBefore ?? null,
+    baselineAfter: init.baselineAfter ?? null,
   };
 }
 
@@ -233,6 +257,7 @@ async function persistObservation(
         common_valid_pct: input.commonValidPct,
         status: input.status,
         rejection_reason: input.rejectionReason,
+        trigger_source: source,
         created_by: actor.userId,
       },
       { onConflict: 'org_id,city_id,item_id' },
@@ -335,6 +360,10 @@ export async function executeScan(
   let afterItem: StacItem | null = null;
   let beforeMeta: StacMeta | null = null;
   let afterMeta: StacMeta | null = null;
+  // Discovery context surfaced on every response so the UI can explain
+  // which window was searched and how many scenes were checked.
+  let discoveryWindowDays = 14;
+  let discoveryMatched = 0;
 
   const persist = (input: ObservationInput): Promise<string | null> => {
     if (!supabase || !actor) return Promise.resolve(null);
@@ -356,11 +385,52 @@ export async function executeScan(
         throw new Error('The before observation must be earlier than the after observation.');
       }
     } else {
-      const recent = await searchStacItems(bbox, { cloudGatePct: CLOUD_GATE_PCT });
-      if (recent.items.length === 0) {
-        const reason = recent.matched === 0
-          ? 'No Sentinel-2 L2A scenes over the AOI in the last 14 days.'
-          : `All ${recent.matched} Sentinel-2 L2A scenes in the last 14 days failed the eo:cloud_cover < ${CLOUD_GATE_PCT}% gate.`;
+      // Discovery pass 1: default 14-day window (fresh change signal).
+      // Pass 2 (only when pass 1 yields NO pair): extended lookback so a
+      // cloudy fortnight still produces a real map instead of a dead end.
+      discoveryWindowDays = 14;
+      discoveryMatched = 0;
+      type DiscoveredPair =
+        | { after: StacItem; afterM: StacMeta; before: StacItem }
+        | { after: StacItem; afterM: StacMeta; matched: number; clear: number };
+      const discoverPair = async (lookbackDays: number): Promise<DiscoveredPair | null> => {
+        const recent = await searchStacItems(bbox, { cloudGatePct: CLOUD_GATE_PCT, lookbackDays });
+        discoveryMatched = Math.max(discoveryMatched, recent.matched);
+        if (recent.items.length === 0) return null;
+        const after = recent.items[0];
+        const afterM = extractStacMeta(after);
+        const prior = await searchStacItems(bbox, {
+          cloudGatePct: CLOUD_GATE_PCT,
+          before: afterM.acquiredAt,
+        });
+        discoveryMatched = Math.max(discoveryMatched, prior.matched);
+        const afterIdInner = after.id;
+        const afterAcquiredAt = afterM.acquiredAt;
+        const sameTile = prior.items.filter((item) => {
+          if (item.properties['grid:code'] !== afterM.tile) return false;
+          // The `../before` window is inclusive of its endpoint, so the after
+          // item itself can reappear here. Pairing a scene with itself is not a
+          // change pair — runScan rejects equal datetimes — so exclude it and
+          // require a strictly earlier acquisition.
+          if (item.id === afterIdInner) return false;
+          const itemMs = Date.parse(item.properties.datetime);
+          const afterMs = Date.parse(afterAcquiredAt);
+          return Number.isFinite(itemMs) && Number.isFinite(afterMs) && itemMs < afterMs;
+        });
+        if (sameTile.length === 0) return { after, afterM, matched: prior.matched, clear: prior.items.length };
+        return { after, afterM, before: sameTile[0] };
+      };
+
+      let pair = await discoverPair(14);
+      if (!pair && RETRY_LOOKBACK_DAYS > 14) {
+        discoveryWindowDays = RETRY_LOOKBACK_DAYS;
+        pair = await discoverPair(RETRY_LOOKBACK_DAYS);
+      }
+      if (!pair) {
+        const reason =
+          `No clear same-tile Sentinel-2 L2A pair in the last ${discoveryWindowDays} days ` +
+          `(${discoveryMatched} scenes checked, all failed the eo:cloud_cover < ${CLOUD_GATE_PCT}% gate ` +
+          `or no earlier same-tile scene). Try a manual before/after pair or run again later.`;
         const observationId = await persist({
           itemId: attemptItemId(),
           meta: null,
@@ -375,43 +445,17 @@ export async function executeScan(
           persisted: observationId !== null,
           observationId,
           rejectionReason: reason,
+          discoveryWindowDays,
+          discoveryMatched,
         });
       }
-
-      afterItem = recent.items[0];
-      afterMeta = extractStacMeta(afterItem);
-      const afterTile = afterMeta.tile;
-
-      const prior = await searchStacItems(bbox, {
-        cloudGatePct: CLOUD_GATE_PCT,
-        before: afterMeta.acquiredAt,
-      });
-      if (!afterItem || !afterMeta) {
-        throw new Error('Internal: scan discovery produced no after item.');
-      }
-      const afterId = afterItem.id;
-      const afterAcquiredAt = afterMeta.acquiredAt;
-      const sameTile = prior.items.filter((item) => {
-        if (item.properties['grid:code'] !== afterTile) return false;
-        // The `../before` window is inclusive of its endpoint, so the after
-        // item itself can reappear here. Pairing a scene with itself is not a
-        // change pair — runScan rejects equal datetimes — so exclude it and
-        // require a strictly earlier acquisition.
-        if (item.id === afterId) return false;
-        const itemMs = Date.parse(item.properties.datetime);
-        const afterMs = Date.parse(afterAcquiredAt);
-        return Number.isFinite(itemMs) && Number.isFinite(afterMs) && itemMs < afterMs;
-      });
-
-      if (sameTile.length === 0) {
-        const reason = prior.matched === 0
-          ? `No earlier Sentinel-2 L2A scenes before ${afterMeta.acquiredAt} over the AOI.`
-          : prior.items.length === 0
-            ? `All ${prior.matched} earlier scenes failed the eo:cloud_cover < ${CLOUD_GATE_PCT}% gate.`
-            : `Earlier clear scenes exist but none on tile ${afterTile} (cross-tile pairs are rejected by design).`;
+      if (!('before' in pair)) {
+        const reason = pair.clear === 0
+          ? `All ${pair.matched} earlier scenes failed the eo:cloud_cover < ${CLOUD_GATE_PCT}% gate.`
+          : `Earlier clear scenes exist but none on tile ${pair.afterM.tile} (cross-tile pairs are rejected by design).`;
         const observationId = await persist({
-          itemId: afterMeta.itemId,
-          meta: afterMeta,
+          itemId: pair.afterM.itemId,
+          meta: pair.afterM,
           status: 'no_clear_observation',
           rejectionReason: reason,
           totalAoiPixels: 0,
@@ -422,15 +466,23 @@ export async function executeScan(
           cityId: city.id,
           persisted: observationId !== null,
           observationId,
-          itemIds: [null, afterMeta.itemId],
-          dates: { before: null, after: afterMeta.acquiredAt },
-          tile: afterMeta.tile,
-          epsg: afterMeta.epsg,
+          itemIds: [null, pair.afterM.itemId],
+          dates: { before: null, after: pair.afterM.acquiredAt },
+          tile: pair.afterM.tile,
+          epsg: pair.afterM.epsg,
           rejectionReason: reason,
+          discoveryWindowDays,
+          discoveryMatched,
+          cloudCoverPctBefore: null,
+          cloudCoverPctAfter: pair.afterM.cloudCoverPct,
+          baselineBefore: null,
+          baselineAfter: pair.afterM.processingBaseline,
         });
       }
 
-      beforeItem = sameTile[0];
+      afterItem = pair.after;
+      afterMeta = pair.afterM;
+      beforeItem = pair.before;
       beforeMeta = extractStacMeta(beforeItem);
     }
     // ---- Read both scenes and run the verified Phase 3 detection ----
@@ -464,6 +516,7 @@ export async function executeScan(
       status: pairStatus,
       rejectionReason: pairReason,
       totalAoiPixels: result.totalAoiPixels,
+      validPixels: result.commonValidPixels,
       commonValidPct: result.commonValidPct,
     });
     const afterObsId = await persist({
@@ -472,6 +525,7 @@ export async function executeScan(
       status: pairStatus,
       rejectionReason: pairReason,
       totalAoiPixels: result.totalAoiPixels,
+      validPixels: result.commonValidPixels,
       commonValidPct: result.commonValidPct,
     });
 
@@ -501,6 +555,12 @@ export async function executeScan(
       quorumRequiredPct: result.quorumRequiredPct,
       rejectionReason: pairReason,
       metrics: result.metrics ?? null,
+      discoveryWindowDays,
+      discoveryMatched,
+      cloudCoverPctBefore: beforeMeta.cloudCoverPct,
+      cloudCoverPctAfter: afterMeta.cloudCoverPct,
+      baselineBefore: beforeMeta.processingBaseline,
+      baselineAfter: afterMeta.processingBaseline,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

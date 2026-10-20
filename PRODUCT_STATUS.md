@@ -1,4 +1,4 @@
-# DNA · City — Product Status
+# Enrealys — Product Status
 
 > **Scope of this document.** A read-only inventory of the *current* codebase. Every
 > statement below is based on direct code inspection (routes, providers, hooks,

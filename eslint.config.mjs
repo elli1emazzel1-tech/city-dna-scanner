@@ -14,6 +14,22 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Node-only CJS processing tooling for CityScan (not part of the Next.js app).
     "src/lib/cityscan/**",
+    // Root-level scratch/debug/patch scripts for the CityScan pipeline (Node-only tooling, not app code).
+    "debug-*.ts",
+    "debug-*.cjs",
+    "debug-*.js",
+    "patch-*.cjs",
+    "patch-*.js",
+    "scan-*.cjs",
+    "scan-runner.js",
+    "scan-post.cjs",
+    "*.log",
+    "out-*.txt",
+    "out-scan.ts",
+    "tokyo-result.txt",
+    "stac-london.txt",
+    "london-scan.log",
+    "old-cityscanpage.txt",
   ]),
 ]);
 

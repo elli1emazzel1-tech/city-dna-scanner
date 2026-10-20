@@ -61,14 +61,14 @@ function LoginContent() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#07111b] px-4 text-slate-200">
       <section className="w-full max-w-sm rounded-xl border border-[#1b3041] bg-[#0a1926] p-6 shadow-2xl">
-        <Link href="/dashboard" className="flex items-center gap-2.5" aria-label="DNA City overview">
+        <Link href="/dashboard" className="flex items-center gap-2.5" aria-label="Enrealys overview">
           <span className="flex h-8 w-8 items-center justify-center rounded-md border border-teal-400/30 bg-teal-400/10 text-teal-300">
             <Waves size={17} strokeWidth={2.2} />
           </span>
-          <span className="text-[13px] font-semibold tracking-wide text-slate-100">DNA <span className="text-teal-300">·</span> City</span>
+          <span className="text-[13px] font-semibold tracking-wide text-slate-100">Enrealys</span>
         </Link>
 
-        <h1 className="mt-5 text-[15px] font-semibold text-slate-100">Sign in to Aurealis</h1>
+        <h1 className="mt-5 text-[15px] font-semibold text-slate-100">Sign in to Enrealys</h1>
         <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
           Sign in with your organisation account to save monitoring locations and access them across devices.
         </p>

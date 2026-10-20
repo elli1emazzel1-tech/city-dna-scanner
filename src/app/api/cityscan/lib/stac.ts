@@ -88,14 +88,14 @@ export interface StacSearchResult {
  */
 export async function searchStacItems(
   bbox: [number, number, number, number],
-  options: { cloudGatePct: number; before?: string; limit?: number } = { cloudGatePct: 20 },
+  options: { cloudGatePct: number; before?: string; limit?: number; lookbackDays?: number } = { cloudGatePct: 20 },
 ): Promise<StacSearchResult> {
   const [minLon, minLat, maxLon, maxLat] = bbox;
-  const { cloudGatePct, before, limit = 10 } = options;
+  const { cloudGatePct, before, limit = 10, lookbackDays = 14 } = options;
 
   const datetime = before
     ? `../${before}`
-    : `${new Date(Date.now() - 14 * 86_400_000).toISOString()}/${new Date().toISOString()}`;
+    : `${new Date(Date.now() - lookbackDays * 86_400_000).toISOString()}/${new Date().toISOString()}`;
 
   const body: Record<string, unknown> = {
     collections: ['sentinel-2-l2a'],

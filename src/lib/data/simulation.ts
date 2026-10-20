@@ -6,7 +6,7 @@ import type {
 } from './types';
 
 /**
- * Scenario simulation engine for DNA · City.
+ * Scenario simulation engine for Enrealys.
  *
  * TRUST & TRANSPARENCY — two projection tiers, never confused with a measurement:
  *
@@ -22,7 +22,7 @@ import type {
  *               coefficient, method, and limitation. Never labelled SIMULATED or
  *               OBSERVED.
  *
- * DNA · City does NOT connect a validated physical model that translates
+ * Enrealys does NOT connect a validated physical model that translates
  * interventions into emissions, surface temperature, AQI, or urban flood risk.
  * Rather than fabricate such a model or show an empty card, the engine returns an
  * INDICATIVE estimate whose method names exactly how it was produced. No value is
@@ -308,10 +308,10 @@ export interface ScenarioOutput {
  * estimate instead of an empty card.
  */
 const REFERENCE_BASELINES: Record<'carbon' | 'air' | 'flood' | 'green', { value: number; source: string }> = {
-  carbon: { value: 200, source: 'DNA · City documented reference midpoint for urban background CO (reference, not a city measurement)' },
-  air: { value: 60, source: 'DNA · City documented reference midpoint for urban air-quality index (reference, not a city measurement)' },
-  flood: { value: 50, source: 'DNA · City documented reference midpoint for river discharge (reference, not a city measurement)' },
-  green: { value: 142, source: 'DNA · City documented reference midpoint for mapped urban vegetation features (reference, not a city measurement)' },
+  carbon: { value: 200, source: 'Enrealys documented reference midpoint for urban background CO (reference, not a city measurement)' },
+  air: { value: 60, source: 'Enrealys documented reference midpoint for urban air-quality index (reference, not a city measurement)' },
+  flood: { value: 50, source: 'Enrealys documented reference midpoint for river discharge (reference, not a city measurement)' },
+  green: { value: 142, source: 'Enrealys documented reference midpoint for mapped urban vegetation features (reference, not a city measurement)' },
 };
 
 interface ProjectionInput {

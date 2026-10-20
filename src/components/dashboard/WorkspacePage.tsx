@@ -102,7 +102,7 @@ export default function WorkspacePage() {
           </div>
           <p className="mt-3 flex items-start gap-1.5 rounded border border-slate-800 bg-[#081622] px-2.5 py-2 text-[9px] leading-relaxed text-slate-500">
             <UserCog size={12} className="mt-0.5 shrink-0 text-slate-600" />
-            Organisation profiles, members and facilities are local demo data stored in this browser (no backend). Risk indicators are live values from the same Open-Meteo providers used across DNA · City.
+            Organisation profiles, members and facilities are local demo data stored in this browser (no backend). Risk indicators are live values from the same Open-Meteo providers used across Enrealys.
           </p>
         </header>
 

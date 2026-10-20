@@ -98,7 +98,7 @@ export default function SimulationResults({ city, output, isLoading, isSaving, o
               </div>
             )}
             <p className="mt-2 text-[8px] leading-relaxed text-slate-600">
-              No single overall score is shown — DNA · City has no validated aggregation methodology. Counts cover every indicator: live-baseline SIMULATED transforms and transparent INDICATIVE reference estimates.
+              No single overall score is shown — Enrealys has no validated aggregation methodology. Counts cover every indicator: live-baseline SIMULATED transforms and transparent INDICATIVE reference estimates.
             </p>
           </div>
 

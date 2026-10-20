@@ -117,7 +117,7 @@ export default function OverviewDashboard({ data, onSelectCity, dataStatus, isLo
 
         <section className="flex flex-col gap-3 rounded-md border border-[#1b3041] bg-[#0a1926] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div><h2 className="text-[12px] font-semibold text-slate-100">Smarter decisions. Healthier cities.</h2><p className="mt-1 text-[9px] text-slate-500">Turn complex urban environmental data into clear, actionable intelligence. Pilot and reporting workflows can connect to verified data sources.</p></div>
-          <div className="flex shrink-0 gap-2"><Link href="/about" className="rounded border border-slate-700 px-3 py-2 text-[9px] text-slate-300 hover:border-teal-800 hover:text-teal-200">About DNA · City</Link><Link href="/city-report" className="rounded border border-teal-800/70 bg-teal-950/40 px-3 py-2 text-[9px] font-medium text-teal-200 hover:bg-teal-950/70">Generate report</Link></div>
+          <div className="flex shrink-0 gap-2"><Link href="/about" className="rounded border border-slate-700 px-3 py-2 text-[9px] text-slate-300 hover:border-teal-800 hover:text-teal-200">About Enrealys</Link><Link href="/city-report" className="rounded border border-teal-800/70 bg-teal-950/40 px-3 py-2 text-[9px] font-medium text-teal-200 hover:bg-teal-950/70">Generate report</Link></div>
         </section>
       </div>
     </DashboardShell>

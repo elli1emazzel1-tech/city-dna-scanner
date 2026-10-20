@@ -4,7 +4,7 @@ import { CitySelectionProvider } from '../components/dashboard/CitySelectionProv
 import { WorkspaceProvider } from '../components/dashboard/WorkspaceProvider';
 
 export const metadata: Metadata = {
-  title: 'DNA · City | Urban Environmental Intelligence',
+  title: 'Enrealys | Urban Environmental Intelligence',
   description: 'Urban environmental intelligence, risk context, and climate-planning tools for city teams.',
 };
 

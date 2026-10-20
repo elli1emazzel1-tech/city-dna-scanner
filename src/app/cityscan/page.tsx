@@ -5,7 +5,7 @@ import { useCitySelection } from '@/components/dashboard/CitySelectionProvider';
 import CityScanPage from '@/components/cityscan/CityScanPage';
 
 /**
- * City Scan lives inside the shared Aurealys shell (header, city search,
+ * City Scan lives inside the shared Enrealys shell (header, city search,
  * navigation, sign-in control) like every other dashboard page — no separate
  * layout or duplicated navigation. Browsing is public; sign-in stays optional
  * in the header and is only required for operations that trigger scans.

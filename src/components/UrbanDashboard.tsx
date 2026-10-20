@@ -1044,8 +1044,8 @@ function LegacyDashboard({ section, embedded = false }: { section: DashboardSect
           <section className="space-y-6">
             <div>
               <span className="text-[10px] font-mono uppercase tracking-wider text-[#22FFAA]">About this platform</span>
-              <h1 className="mt-1 text-2xl font-extrabold text-white">City DNA, at a glance</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">DNA · City brings provider-backed environmental context, city-centre mapping, and clearly scoped analytical tools into one workspace. Unsupported city indicators remain unavailable rather than being filled with sample values.</p>
+              <h1 className="mt-1 text-2xl font-extrabold text-white">Enrealys, at a glance</h1>
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400">Enrealys brings provider-backed environmental context, city-centre mapping, and clearly scoped analytical tools into one workspace. Unsupported city indicators remain unavailable rather than being filled with sample values.</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {[

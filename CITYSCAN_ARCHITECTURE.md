@@ -2,7 +2,7 @@
 
 **Status:** Audit document only. No code, no schema changes, no new routes — per task scope.
 **Date:** 15 October 2026
-**Context:** DNA·City (Next.js 16.3 / React 19 / Tailwind 4 / Supabase Auth + Postgres + RLS / Leaflet + react-leaflet). Existing Supabase schema (`supabase/schema.sql`) contains only workspace tables: `organisations`, `memberships`, `facilities`, `saved_reports`, `saved_scenarios` — org-scoped with RLS. Nothing is modified by this audit.
+**Context:** Enrealys (Next.js 16.3 / React 19 / Tailwind 4 / Supabase Auth + Postgres + RLS / Leaflet + react-leaflet). Existing Supabase schema (`supabase/schema.sql`) contains only workspace tables: `organisations`, `memberships`, `facilities`, `saved_reports`, `saved_scenarios` — org-scoped with RLS. Nothing is modified by this audit.
 
 **Five launch cities (per task; subset of the existing catalog in `src/lib/data/cities.ts`):** London, Paris, Amsterdam, Berlin, Tokyo. One fixed AOI per city: a ~10 × 10 km square centred on the catalog coordinates. Small tiles keep downloads inside free quotas; boundaries can be swapped for real admin polygons when WatchZones land.
 

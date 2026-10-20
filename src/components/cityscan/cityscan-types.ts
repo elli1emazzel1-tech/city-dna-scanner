@@ -44,11 +44,17 @@ export interface FindingSummary {
   ndviMeanAfter: number | null;
   ndwiMeanBefore: number | null;
   ndwiMeanAfter: number | null;
+  vegetationAreaHaBefore: number | null;
+  vegetationAreaHaAfter: number | null;
+  waterAreaHaBefore: number | null;
+  waterAreaHaAfter: number | null;
   vegetationLossHa: number | null;
   vegetationGainHa: number | null;
   waterGainHa: number | null;
   waterLossHa: number | null;
+  pixelAreaHa: number | null;
   commonValidPct: number | null;
+  quorumRequiredPct: number | null;
   methodVersion: string | null;
   createdAt: string;
 }
@@ -113,7 +119,27 @@ export interface ScanRunResponse {
   commonValidPct: number | null;
   quorumRequiredPct: number;
   rejectionReason: string | null;
-  metrics: unknown | null;
+  metrics: {
+    ndviMeanBefore: number;
+    ndviMeanAfter: number;
+    ndwiMeanBefore: number;
+    ndwiMeanAfter: number;
+    vegetationAreaHaBefore: number;
+    vegetationAreaHaAfter: number;
+    waterClassifiedAreaHaBefore: number;
+    waterClassifiedAreaHaAfter: number;
+    vegetationLossThresholdAreaHa: number;
+    vegetationGainThresholdAreaHa: number;
+    waterGainThresholdAreaHa: number;
+    waterLossThresholdAreaHa: number;
+    pixelAreaHa: number;
+  } | null;
+  discoveryWindowDays: number;
+  discoveryMatched: number;
+  cloudCoverPctBefore: number | null;
+  cloudCoverPctAfter: number | null;
+  baselineBefore: string | null;
+  baselineAfter: string | null;
 }
 
 export interface CityScanError {

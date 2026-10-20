@@ -4,7 +4,7 @@ import type { City, CityEnvironmentalData } from './types';
 /**
  * Organisation Workspace — local (demo) data model.
  *
- * DNA · City has no backend, so organisation profiles, members and monitored
+ * Enrealys has no backend, so organisation profiles, members and monitored
  * facilities are LOCAL DEMO DATA defined here (clearly labelled in the UI). Only the
  * user's *active organisation selection* is persisted to localStorage. Facility risk
  * indicators are derived from the SAME live environmental telemetry used elsewhere
