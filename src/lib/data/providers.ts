@@ -1,4 +1,5 @@
 import { getSpatialTelemetry } from './spatialCache';
+import { CurrentProviderError, fetchCurrentProviderPayload } from './openMeteoCurrent';
 import {
   AIR_QUALITY_FRESHNESS_POLICY,
   isOptionalPollutantValue,
@@ -303,11 +304,51 @@ async function fetchProviderJson(url: URL, signal: AbortSignal): Promise<unknown
   return response.json() as Promise<unknown>;
 }
 
+/**
+ * True when running in a browser (client bundle). Server-side renders and
+ * Node/SSR contexts must not use relative URLs such as
+ * `/api/environmental/current?...`, because `fetch` cannot parse them outside
+ * a browser and throws `Failed to parse URL`.
+ */
+function isBrowserRuntime(): boolean {
+  return typeof window !== 'undefined' && typeof window.document !== 'undefined';
+}
+
+/**
+ * Loads Open-Meteo current conditions for a provider.
+ *
+ * In the browser we call the internal API route so the request stays
+ * same-origin (and avoids CORS). On the server we call Open-Meteo directly,
+ * because a relative URL is not resolvable there.
+ */
 async function fetchCurrentProviderJson(
   provider: 'weather' | 'air-quality',
   coordinates: Coordinates,
   signal: AbortSignal,
 ): Promise<{ payload: unknown; referenceTime: number }> {
+  if (!isBrowserRuntime()) {
+    let result: Awaited<ReturnType<typeof fetchCurrentProviderPayload>>;
+    try {
+      result = await fetchCurrentProviderPayload(provider, coordinates, signal);
+    } catch (error) {
+      if (error instanceof CurrentProviderError) {
+        const label = provider === 'weather' ? 'Weather' : 'Air-quality';
+        if (error.kind === 'stale-timestamp') {
+          throw new Error(`${label} provider returned stale or future-dated conditions.`);
+        }
+        if (error.kind === 'http') {
+          throw new Error(`${label} provider request failed (${error.message}).`);
+        }
+        if (error.kind === 'timeout') {
+          throw new Error(`${label} provider request timed out.`);
+        }
+        throw new Error(`${label} provider request failed (${error.message}).`);
+      }
+      throw error;
+    }
+    return { payload: result.payload, referenceTime: result.referenceTime };
+  }
+
   const params = new URLSearchParams({
     provider,
     latitude: String(coordinates.latitude),

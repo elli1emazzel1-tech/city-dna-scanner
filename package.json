@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:providers": "node --test tests/provider-time.test.mjs"
+    "test:providers": "node --test tests/provider-time.test.mjs",
+    "test:environmental": "node --import ./tests/helpers/register-ts.mjs --test tests/environmental-route.live.test.mjs tests/environmental-provider.live.test.mjs",
+    "test:all": "npm run test:providers && npm run test:environmental"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
