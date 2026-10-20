@@ -25,7 +25,7 @@ scope · **UI-only / stub** = renders but intentionally does nothing meaningful 
 | 1 | City search (global) | `CitySearch.tsx`, `cities.ts` | **Functional** | Open-Meteo geocoding (keyless) + local catalogue of 20 cities. |
 | 2 | Overview dashboard (`/`, `/dashboard`) | `ProfessionalDashboard` → `OverviewDashboard` | **Functional** | Live weather/air/flood/water/green metrics with per-source provenance. Default (non-legacy) render path. |
 | 3 | Environmental metric cards | `EnvironmentalMetricCard.tsx` | **Functional** | Shows value/unit/status/source; honest `UNAVAILABLE` when provider missing. |
-| 4 | Environmental "health" score | `HealthAndActions.tsx` | **UI-only / stub (by design)** | Always renders "Unavailable / N/A"; no composite score is computed (deliberately withheld). |
+| 4 | Environmental conditions panel | `HealthAndActions.tsx` | **Functional (no composite score)** | Deterministic per-indicator summary from real provider data: availability count plus each indicator's value, provider data type, caveat and provenance. No composite score, average, percentage or safety rating is computed — "composite score not configured" is stated explicitly. |
 | 5 | City map | `InteractiveCityMap.tsx` | **Functional** | Esri Satellite + OSM basemaps, city-centre marker, zoom, fullscreen, Map/Satellite toggle. |
 | 6 | Map "Risk layers" panel | `InteractiveCityMap.tsx` + `layers.ts` | **Functional (minimal)** | Checkboxes toggle small colour-coded dots + hover readings from live telemetry. No spatial heatmaps/blobs. |
 | 7 | City comparison (`/compare-cities`) | `CityComparison.tsx` | **Functional** | Side-by-side provider values for two cities; no synthetic ranking. |
@@ -66,7 +66,11 @@ scope · **UI-only / stub** = renders but intentionally does nothing meaningful 
 The engine deliberately avoids fabricating values; when no live baseline exists it uses
 a documented *reference midpoint* (clearly badged, never presented as a measurement).
 
-**Environmental "health" score:** intentionally **unavailable** (no validated composite).
+**Environmental conditions panel:** the dashboard reports each provider indicator
+individually — value, provider data type (Modelled / Historical / Cached / Reported),
+caveat and provenance — plus a deterministic count of how many indicators returned
+validated provider data. A composite "health" score remains intentionally
+**unavailable** (no validated composite methodology is configured).
 
 ---
 
